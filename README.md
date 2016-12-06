@@ -32,8 +32,8 @@ The encryption key is a repeating XOR key:
 Packet format (big endian):
 ```
 0: uint8_t length;        // Always 0x11
-1: uint8_t always_0xff;   // Always 0xFF for me, maybe the same as the low byte of the sender_id, maybe not.
-2: uint8_t always_0x70;   // Always 0x70
+1: uint8_t sender_id_lo;  // Lowest byte of sender ID
+2: uint8_t unknown;       // Not sure
 3: uint8_t major_version; // Always 0x07 - the major version number of the sender.
 4: uint8_t minor_version; // Always 0x0E - the minor version number of the sender.
 5: uint32_t sender_id;    // ID of sender

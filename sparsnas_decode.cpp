@@ -14,6 +14,9 @@
 // encryption so you can guess it through a known plaintext attack.
 #define SENSOR_ID 0xA29FF
 
+// Try setting this to 1 if you don't find stuff
+#define USE_12P5_50_KHZ 0
+
 //////////////////////////////////////
 
 FILE *outfile;
@@ -91,7 +94,7 @@ public:
 
       uint32_t rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
 
-      if (data_[0] != 0x11 || data_[1] != 0xFF || data_[3] != 0x07 || data_[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
+      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || data_[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
         m += sprintf(m, "Bad: ");
         for (int i = 0; i < 18; i++)
           m += sprintf(m, "%.2X ", data_[i]);
@@ -128,7 +131,7 @@ int main(int argc, char **argv)
 {
   FILE *f = stdin;
   if (argc >= 2) {
-    f = fopen(argv[2], "rb");
+    f = fopen(argv[1], "rb");
     if (!f) {
       fprintf(stderr, "Failed load!\n");
       return 1;
@@ -143,8 +146,13 @@ int main(int argc, char **argv)
   std::complex<float> sum2(0, 0);
   int hi = 0;
 
+#if USE_12P5_50_KHZ
+  float F1 = 12500.0;
+  float F2 = 50000.0;
+#else
   float F1 = 67000.0;
   float F2 = 105000.0;
+#endif
   float S = 1024000.0;
   int j = 0;
 
@@ -163,12 +171,11 @@ int main(int argc, char **argv)
     if (elems <= 0)
       break;
 
-    for (int ei = 0; ei < elems; ei++, j++) {
+    for (int ei = 0; ; ei++, j++) {
       std::complex<float> v(buf[ei * 2 + 0] - 128, buf[ei * 2 + 1] - 128);
 
       std::complex<float> v1 = v * c1;
       std::complex<float> v2 = v * c2;
-
 
       sum1 += v1 - hist1[hi];
       hist1[hi] = v1;
@@ -184,7 +191,7 @@ int main(int argc, char **argv)
       bool signal = sum1.real() * sum1.real() + sum1.imag() * sum1.imag() >
                     sum2.real() * sum2.real() + sum2.imag() * sum2.imag();
 
-      if (signal != last_signal) {
+      if (signal != last_signal || ei == elems - 1) {
         int pulse_len = (unsigned)j - last_sigtime;
         if (pulse_len >= 20) {
           int syms = int(pulse_len / avg + 0.5f);
@@ -197,12 +204,16 @@ int main(int argc, char **argv)
         }
         last_signal = signal;
         last_sigtime = j;
+        if (ei == elems - 1)
+          break;
       }
     }
 
     c1 *= 1.0f / std::abs(c1);
     c2 *= 1.0f / std::abs(c2);
   }
+
+  sd.add_fail();
 
   return 0;
 }
