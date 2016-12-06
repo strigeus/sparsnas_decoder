@@ -20,7 +20,7 @@ How to run:
 
 Technical details:
 ------------------
-SPARSNÄS uses a CC1101 chip configured for GFSK modulation at 868MHz. The two FSK symbol frequencies once downconverted to baseband are roughly 67kHz and 105kHz. The packet length is 18 bytes, including the length byte, and a 16-bit CRC is appended to the end. The CC1101 sync word is 0xD201. The packet payload byte 5 to 17 are encrypted using a key derived from the sender device's ID.
+SPARSNÄS uses a CC1101 chip configured for GFSK modulation at 868MHz. The two FSK symbol frequencies once downconverted to baseband are roughly 67kHz and 105kHz. (EDIT: It seems like with a different RTL-SDR the baseband frequencies are 12.5khz and 50khz. Maybe my first RTL-SDR was inaccurate). The packet length is 18 bytes, including the length byte, and a 16-bit CRC is appended to the end. The CC1101 sync word is 0xD201. The packet payload byte 5 to 17 are encrypted using a key derived from the sender device's ID.
 
 The encryption key is a repeating XOR key:
 ```
