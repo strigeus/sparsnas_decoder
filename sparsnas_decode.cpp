@@ -10,11 +10,13 @@
 //////////////////////////////////////
 #define PULSES_PER_KWH 1000
 
-// The packet is encrypted using the SENSOR_ID using a weak XOR
-// encryption so you can guess it through a known plaintext attack.
-#define SENSOR_ID 0xA29FF
+// These are the last 6 digits from the serial number of the sender.
+// The serial number is located under the battery.
+// The full serial number looks like "400 666 111"
+#define SENSOR_ID 666111
 
 // Try setting this to 1 if you don't find stuff
+// It seems like different RTL-SDR tune to slightly different frequencies
 #define USE_12P5_50_KHZ 0
 
 //////////////////////////////////////
