@@ -8,6 +8,9 @@ The packet data is encrypted using your sender's ID. The sender ID is the last 6
 
 How to build:
 -------------
+
+First edit sparsnas_decode.cpp to setup your sender id. Then: 
+
 ```g++ -o sparsnas_decode -O3 sparsnas_decode.cpp```
 
 How to run:
