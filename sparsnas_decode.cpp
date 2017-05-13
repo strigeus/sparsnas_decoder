@@ -15,9 +15,14 @@
 // The full serial number looks like "400 666 111"
 #define SENSOR_ID 666111
 
-// Try setting this to 1 if you don't find stuff
 // It seems like different RTL-SDR tune to slightly different frequencies
-#define USE_12P5_50_KHZ 0
+// Or I'm not really sure what's up, but the 0 and 1 frequencies differ
+// between different RTL-SDR and/or sparsnäs. You can have a look at the 
+// signal in a wave file editor and you can measure the wavelengths of the
+// sine waves and put in appropriate values here.
+#define FREQUENCIES {12500.0,50000.0}
+//#define FREQUENCIES {67500.0,105000.0}
+//#define FREQUENCIES {20000.0,60000.0}
 
 //////////////////////////////////////
 
@@ -138,29 +143,33 @@ int main(int argc, char **argv)
       fprintf(stderr, "Failed load!\n");
       return 1;
     }
+//    for loading wav files
+//    fseek(f, 44, SEEK_SET);
   }
   outfile = fopen("sparsnas.log", "a");
+
+  FILE *logfile = NULL;// fopen("logfile.pcm", "wb");
 
   uint8_t buf[16384];
   std::complex<float> hist1[27] = { 0 };
   std::complex<float> hist2[27] = { 0 };
   std::complex<float> sum1(0, 0);
   std::complex<float> sum2(0, 0);
+  float frequencies[] = FREQUENCIES;
   int hi = 0;
 
-#if USE_12P5_50_KHZ
-  float F1 = 12500.0;
-  float F2 = 50000.0;
-#else
-  float F1 = 67000.0;
-  float F2 = 105000.0;
-#endif
+  float F1 = frequencies[0];
+  float F2 = frequencies[1];
   float S = 1024000.0;
   int j = 0;
 
   bool last_signal = false;
   int last_sigtime = 0;
-  float avg = 26.6666666f;
+  
+  const float PERFECT_PULSE_LEN = 26.6666666f * S / 1024000.0;
+  const int MIN_SAMPLES_IN_ROW = 20 * S / 1024000.0;
+  float avg = PERFECT_PULSE_LEN;
+
 
   std::complex<float> c1(1, 0);
   std::complex<float> c2(1, 0);
@@ -193,15 +202,17 @@ int main(int argc, char **argv)
       bool signal = sum1.real() * sum1.real() + sum1.imag() * sum1.imag() >
                     sum2.real() * sum2.real() + sum2.imag() * sum2.imag();
 
+      if (logfile) {short x = signal ? 10000 : -10000; fwrite(&x, 2, 1, logfile); }
+
       if (signal != last_signal || ei == elems - 1) {
         int pulse_len = (unsigned)j - last_sigtime;
-        if (pulse_len >= 20) {
+        if (pulse_len >= MIN_SAMPLES_IN_ROW) {
           int syms = int(pulse_len / avg + 0.5f);
           avg = avg* 0.95f + (pulse_len / syms) * 0.05f;
           for (int i = 0; i < syms; i++)
             sd.add(last_signal);
         } else {
-          avg = 26.6666666f;
+          avg = PERFECT_PULSE_LEN;
           sd.add_fail();
         }
         last_signal = signal;
