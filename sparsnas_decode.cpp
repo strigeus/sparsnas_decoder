@@ -50,24 +50,38 @@ class SignalDetector {
 public:
   SignalDetector() {
     shift_ = 0;
-    found_sync_ = false;
+    found_sync_ = 0;
   }
 
   void add(bool v) {
     shift_ = shift_ * 2 + v;
-    if ((shift_) == 0xAAAAD201 && !found_sync_)
-      found_sync_ = true;
-    else if (found_sync_ && bits_ < 256) {
-      data_[bits_ >> 3] = data_[bits_ >> 3] * 2 + v;
-      bits_++;
+    switch (found_sync_) {
+    case 0:
+      if ((shift_ & 0xFF) == 0xAA)
+        found_sync_ = 1;
+      break;
+    case 1:
+      if (shift_ == 0xAAAAD201)
+        found_sync_ = 2;
+      break;
+    default:
+      if (bits_ < 256) {
+        data_[bits_ >> 3] = data_[bits_ >> 3] * 2 + v;
+        bits_++;
+      }
+      break;
     }
   }
 
-  void add_fail() {
+  bool has_some_sync() {
+    return found_sync_ != 0;
+  }
+
+  void add_fail(float freq) {
     char mesg[1024];
 
     shift_ = 0;
-    found_sync_ = false;
+    found_sync_ = 0;
     if (bits_ >= 160) {
       uint16_t crc = crc16(data_, 18);
       uint16_t packet_crc = data_[18] << 8 | data_[19];
@@ -111,7 +125,7 @@ public:
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
         int battery = dec[17];
         float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
-        m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%.", seq, watt, pulse/1000, pulse%1000, battery);
+        m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/1000, pulse%1000, battery, freq);
       }
 
       m += sprintf(m, (crc == packet_crc) ? "\n" : "CRC ERR\n");
@@ -125,7 +139,7 @@ public:
     bits_ = 0;
   }
   uint32_t shift_;
-  bool found_sync_;
+  uint8_t found_sync_;
 
   uint8_t data_[32];
   uint32_t bits_;
@@ -167,8 +181,9 @@ int main(int argc, char **argv)
   int last_sigtime = 0;
   
   const float PERFECT_PULSE_LEN = 26.6666666f * S / 1024000.0;
-  const int MIN_SAMPLES_IN_ROW = 20 * S / 1024000.0;
-  float avg = PERFECT_PULSE_LEN;
+  const int MIN_PULSE_LEN = 12 * S / 1024000.0;
+  const int MAX_PULSE_LEN = 42 * S / 1024000.0;
+  float avg_err = 0;
 
 
   std::complex<float> c1(1, 0);
@@ -182,7 +197,15 @@ int main(int argc, char **argv)
     if (elems <= 0)
       break;
 
-    for (int ei = 0; ; ei++, j++) {
+    if (j - last_sigtime > (int)(200 * PERFECT_PULSE_LEN)) {
+      // inject some trailing bits
+      for(int i = 0;  i < 100; i++)
+        sd.add(last_signal);
+      sd.add_fail(avg_err);
+      avg_err = 0;
+    }
+
+    for (int ei = 0; ei < elems; ei++, j++) {
       std::complex<float> v(buf[ei * 2 + 0] - 128, buf[ei * 2 + 1] - 128);
 
       std::complex<float> v1 = v * c1;
@@ -204,21 +227,25 @@ int main(int argc, char **argv)
 
       if (logfile) {short x = signal ? 10000 : -10000; fwrite(&x, 2, 1, logfile); }
 
-      if (signal != last_signal || ei == elems - 1) {
+      if (signal != last_signal) {
         int pulse_len = (unsigned)j - last_sigtime;
-        if (pulse_len >= MIN_SAMPLES_IN_ROW) {
-          int syms = int(pulse_len / avg + 0.5f);
-          avg = avg* 0.95f + (pulse_len / syms) * 0.05f;
-          for (int i = 0; i < syms; i++)
+        
+        if (pulse_len >= MIN_PULSE_LEN && (sd.has_some_sync() || pulse_len < MAX_PULSE_LEN)) {
+          if (signal)
+            avg_err = -avg_err;
+          int syms2 = int((pulse_len - avg_err) * (1.0f / PERFECT_PULSE_LEN) + 0.5f);
+          if (syms2 < 1) syms2 = 1;
+          avg_err += (pulse_len - syms2 * PERFECT_PULSE_LEN - avg_err) * 0.1f;
+          if (signal)
+            avg_err = -avg_err;
+          for (int i = 0; i < syms2; i++)
             sd.add(last_signal);
         } else {
-          avg = PERFECT_PULSE_LEN;
-          sd.add_fail();
+          sd.add_fail(avg_err);
+          avg_err = 0;
         }
         last_signal = signal;
         last_sigtime = j;
-        if (ei == elems - 1)
-          break;
       }
     }
 
@@ -226,9 +253,10 @@ int main(int argc, char **argv)
     c2 *= 1.0f / std::abs(c2);
   }
 
-  sd.add_fail();
+  sd.add_fail(avg_err);
 
   return 0;
 }
+
 
 
