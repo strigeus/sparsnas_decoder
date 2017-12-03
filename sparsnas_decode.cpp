@@ -17,16 +17,71 @@
 
 // It seems like different RTL-SDR tune to slightly different frequencies
 // Or I'm not really sure what's up, but the 0 and 1 frequencies differ
-// between different RTL-SDR and/or sparsn‰s. You can have a look at the 
+// between different RTL-SDR and/or sparsn√§s. You can have a look at the 
 // signal in a wave file editor and you can measure the wavelengths of the
 // sine waves and put in appropriate values here.
-#define FREQUENCIES {12500.0,50000.0}
-//#define FREQUENCIES {67500.0,105000.0}
+//#define FREQUENCIES {12500.0,50000.0}
+#define FREQUENCIES {67500.0,105000.0}
 //#define FREQUENCIES {20000.0,60000.0}
 
 //////////////////////////////////////
 
 FILE *outfile;
+
+
+// Implementation of Complex numbers, cause std::complex is stupid and doesn't inline properly.
+template<typename T>
+struct ComplexBase {
+  T real, imag;
+
+  static ComplexBase<T> Make(T a = 0.0f, T b = 0.0f) {
+    ComplexBase<T> r = {a, b};
+    return r;
+  }
+  friend ComplexBase<T> operator*(ComplexBase<T> a, T b) {
+    ComplexBase<T> r = {a.real * b, a.imag * b};
+    return r;
+  }
+
+  friend ComplexBase<T> operator*(ComplexBase<T> a, ComplexBase<T> b) {
+    return (a *= b);
+  }
+
+  friend ComplexBase<T> operator/(ComplexBase<T> a, T b) {
+    ComplexBase<T> r = {a.real / b, a.imag / b};
+    return r;
+  }
+  friend ComplexBase<T> operator+(ComplexBase<T> a, ComplexBase<T> b) {
+    ComplexBase<T> r = {a.real + b.real, a.imag + b.imag};
+    return r;
+  }
+  friend ComplexBase<T> operator-(ComplexBase<T> a, ComplexBase<T> b) {
+    ComplexBase<T> r = {a.real - b.real, a.imag - b.imag};
+    return r;
+  }
+  ComplexBase<T> &operator*=(T b) {
+    return real *= b, imag *= b, *this;
+  }
+  ComplexBase<T> &operator+=(T b) {
+    return real += b, *this;
+  }
+  ComplexBase<T> &operator+=(ComplexBase<T> b) {
+    return real += b.real, imag += b.imag, *this;
+  }
+  ComplexBase<T> &operator*=(ComplexBase<T> b) {
+    T t = real * b.real - imag * b.imag;
+    imag = real * b.imag + imag * b.real;
+    real = t;
+    return *this;
+  }
+
+  T Abs() const {
+    return hypotf(real, imag);
+  }
+};
+
+typedef ComplexBase<float> Complex;
+typedef ComplexBase<double> ComplexDouble;
 
 uint16_t crc16(const uint8_t *data, size_t n) {
   uint16_t crcReg = 0xffff;
@@ -165,10 +220,11 @@ int main(int argc, char **argv)
   FILE *logfile = NULL;// fopen("logfile.pcm", "wb");
 
   uint8_t buf[16384];
-  std::complex<float> hist1[27] = { 0 };
-  std::complex<float> hist2[27] = { 0 };
-  std::complex<float> sum1(0, 0);
-  std::complex<float> sum2(0, 0);
+  Complex hist1[27] = { 0 };
+  Complex hist2[27] = { 0 };
+  Complex sum1 = {0, 0};
+  Complex sum2 = {0, 0};
+
   float frequencies[] = FREQUENCIES;
   int hi = 0;
 
@@ -186,11 +242,13 @@ int main(int argc, char **argv)
   float avg_err = 0;
 
 
-  std::complex<float> c1(1, 0);
-  std::complex<float> c2(1, 0);
+  Complex c1 = {1, 0};
+  Complex c2 = {1, 0};
 
-  std::complex<float> rot1 = std::exp(std::complex<float>(0, 2 * M_PI * F1 / S));
-  std::complex<float> rot2 = std::exp(std::complex<float>(0, 2 * M_PI * F2 / S));
+  float f1 = 2 * M_PI * F1 / S;
+  Complex rot1 = Complex::Make(cosf(f1), sinf(f1));
+  float f2 = 2 * M_PI * F2 / S;
+  Complex rot2 = Complex::Make(cosf(f2), sinf(f2));
 
   for (;;) {
     int elems = fread(buf, 2, 8192, f);
@@ -206,10 +264,10 @@ int main(int argc, char **argv)
     }
 
     for (int ei = 0; ei < elems; ei++, j++) {
-      std::complex<float> v(buf[ei * 2 + 0] - 128, buf[ei * 2 + 1] - 128);
+      Complex v = {(float)(buf[ei * 2 + 0] - 128), (float)(buf[ei * 2 + 1] - 128)};
 
-      std::complex<float> v1 = v * c1;
-      std::complex<float> v2 = v * c2;
+      Complex v1 = v * c1;
+      Complex v2 = v * c2;
 
       sum1 += v1 - hist1[hi];
       hist1[hi] = v1;
@@ -222,8 +280,8 @@ int main(int argc, char **argv)
       if (++hi == 27)
         hi = 0;
 
-      bool signal = sum1.real() * sum1.real() + sum1.imag() * sum1.imag() >
-                    sum2.real() * sum2.real() + sum2.imag() * sum2.imag();
+      bool signal = sum1.real * sum1.real + sum1.imag * sum1.imag >
+                    sum2.real * sum2.real + sum2.imag * sum2.imag;
 
       if (logfile) {short x = signal ? 10000 : -10000; fwrite(&x, 2, 1, logfile); }
 
@@ -249,8 +307,8 @@ int main(int argc, char **argv)
       }
     }
 
-    c1 *= 1.0f / std::abs(c1);
-    c2 *= 1.0f / std::abs(c2);
+    c1 *= 1.0f / c1.Abs();
+    c2 *= 1.0f / c2.Abs();
   }
 
   sd.add_fail(avg_err);
