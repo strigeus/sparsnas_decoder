@@ -16,10 +16,15 @@ First edit sparsnas_decode.cpp to setup your sender id. Then:
 How to calibrate to your sender frequency:
 ------------------------------------------
 ```rtl_sdr -f 868000000 -s 1024000 -g 40 - > sparsnas.raw```
+
 Wait about 20 seconds. Press Ctrl-C.
+
 ```./sparsnas_decode sparsnas.raw --find-frequencies```
+
 Wait about a minute for it to finish. It prints something like:
+
 ```#define FREQUENCIES {65050.000000, 105050.000000}```
+
 Edit your sparsnas_decode.cpp with those values and rebuild it according to the How to build step above.
 
 How to run:
