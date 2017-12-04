@@ -17,7 +17,7 @@
 
 // It seems like different RTL-SDR tune to slightly different frequencies
 // Or I'm not really sure what's up, but the 0 and 1 frequencies differ
-// between different RTL-SDR and/or sparsnYou can have a look at the 
+// between different RTL-SDR and/or sparsnäs. You can have a look at the 
 // signal in a wave file editor and you can measure the wavelengths of the
 // sine waves and put in appropriate values here.
 //#define FREQUENCIES {12500.0,50000.0}
