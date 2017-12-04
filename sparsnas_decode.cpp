@@ -153,12 +153,12 @@ public:
       struct tm * timeinfo;
       timeinfo = localtime(&mytime);
 
-      m += sprintf(m, "[%.4d-%.2d-%.2d %.2d:%.2d:%.2d] ", timeinfo->tm_year + 1900,
-        timeinfo->tm_mon + 1,
-        timeinfo->tm_mday, 
-        timeinfo->tm_hour,
-        timeinfo->tm_min,
-        timeinfo->tm_sec);
+//      m += sprintf(m, "[%.4d-%.2d-%.2d %.2d:%.2d:%.2d] ", timeinfo->tm_year + 1900,
+//        timeinfo->tm_mon + 1,
+//        timeinfo->tm_mday, 
+//        timeinfo->tm_hour,
+//        timeinfo->tm_min,
+//        timeinfo->tm_sec);
 
       uint8_t dec[32];
 
@@ -186,7 +186,7 @@ public:
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
         int battery = dec[17];
         float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
-        m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/1000, pulse%1000, battery, freq);
+        m += sprintf(m, "{\"Sequence\":%5d,\"Watt\":%7.1f,\"kWh\":%d.%.3d,\"battery\":%d,\"FreqErr\":%.2f}", seq, watt, pulse/1000, pulse%1000, battery, freq);
 
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
