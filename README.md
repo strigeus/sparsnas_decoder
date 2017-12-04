@@ -1,4 +1,4 @@
-A BIG thanks to the "Svenska Hemautomationsgruppen" on Facebook and a special superduper thanks to the core coder @strigeus!
+A BIG thanks to the https://www.facebook.com/groups/SHgruppen on Facebook and a special superduper thanks to the core coder @strigeus!
 https://github.com/strigeus/sparsnas_decoder
 
 This is a fork is adapted for output in JSON format to a MQTT broker.
