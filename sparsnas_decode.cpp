@@ -5,7 +5,7 @@
 #include <complex>
 #include <string>
 #include <time.h>
-
+#include <string.h>
 
 //////////////////////////////////////
 #define PULSES_PER_KWH 1000
@@ -17,7 +17,7 @@
 
 // It seems like different RTL-SDR tune to slightly different frequencies
 // Or I'm not really sure what's up, but the 0 and 1 frequencies differ
-// between different RTL-SDR and/or sparsnäs. You can have a look at the 
+// between different RTL-SDR and/or sparsnYou can have a look at the 
 // signal in a wave file editor and you can measure the wavelengths of the
 // sine waves and put in appropriate values here.
 //#define FREQUENCIES {12500.0,50000.0}
@@ -27,6 +27,8 @@
 //////////////////////////////////////
 
 FILE *outfile;
+int testing;
+
 
 
 // Implementation of Complex numbers, cause std::complex is stupid and doesn't inline properly.
@@ -99,6 +101,9 @@ uint16_t crc16(const uint8_t *data, size_t n) {
   return crcReg;
 }
 
+float error_sum;
+int error_sum_count;
+
 
 class SignalDetector {
 
@@ -106,6 +111,7 @@ public:
   SignalDetector() {
     shift_ = 0;
     found_sync_ = 0;
+    bits_ = 0;
   }
 
   void add(bool v) {
@@ -181,14 +187,21 @@ public:
         int battery = dec[17];
         float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
         m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/1000, pulse%1000, battery, freq);
+
+        if (testing && crc == packet_crc) {
+          error_sum += fabs(freq);
+          error_sum_count += 1;
+        }
       }
 
       m += sprintf(m, (crc == packet_crc) ? "\n" : "CRC ERR\n");
 
-      fprintf(stderr, "%s", mesg);
-      if (outfile) {
-        fprintf(outfile, "%s", mesg);
-        fflush(outfile);
+      if (!testing) {
+        fprintf(stderr, "%s", mesg);
+        if (outfile) {
+          fprintf(outfile, "%s", mesg);
+          fflush(outfile);
+        }
       }
     }
     bits_ = 0;
@@ -200,36 +213,17 @@ public:
   uint32_t bits_;
 };
 
-
-SignalDetector sd;
-
-int main(int argc, char **argv)
-{
-  FILE *f = stdin;
-  if (argc >= 2) {
-    f = fopen(argv[1], "rb");
-    if (!f) {
-      fprintf(stderr, "Failed load!\n");
-      return 1;
-    }
-//    for loading wav files
-//    fseek(f, 44, SEEK_SET);
-  }
-  outfile = fopen("sparsnas.log", "a");
-
-  FILE *logfile = NULL;// fopen("logfile.pcm", "wb");
-
+int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
   uint8_t buf[16384];
+  SignalDetector sd;
+
   Complex hist1[27] = { 0 };
   Complex hist2[27] = { 0 };
   Complex sum1 = {0, 0};
   Complex sum2 = {0, 0};
 
-  float frequencies[] = FREQUENCIES;
   int hi = 0;
 
-  float F1 = frequencies[0];
-  float F2 = frequencies[1];
   float S = 1024000.0;
   int j = 0;
 
@@ -240,7 +234,6 @@ int main(int argc, char **argv)
   const int MIN_PULSE_LEN = 12 * S / 1024000.0;
   const int MAX_PULSE_LEN = 42 * S / 1024000.0;
   float avg_err = 0;
-
 
   Complex c1 = {1, 0};
   Complex c2 = {1, 0};
@@ -312,9 +305,71 @@ int main(int argc, char **argv)
   }
 
   sd.add_fail(avg_err);
-
-  return 0;
 }
 
 
+int main(int argc, char **argv)
+{
+  FILE *f = stdin;
+  if (argc >= 2) {
+    f = fopen(argv[1], "rb");
+    if (!f) {
+      fprintf(stderr, "Failed load!\n");
+      return 1;
+    }
+//    for loading wav files
+//    fseek(f, 44, SEEK_SET);
+  }
 
+  testing = (argc >= 3 && strcmp(argv[2], "--find-frequencies") == 0);
+
+  outfile = fopen("sparsnas.log", "a");
+
+  FILE *logfile = NULL;// fopen("logfile.pcm", "wb");
+
+
+  if (!testing) {
+    float frequencies[] = FREQUENCIES;
+    run_for_frequencies(f, logfile, frequencies[0], frequencies[1]);
+  } else {
+    float range_min = -100000, range_max = 100000, step = 5000;
+    float invalid_f1 = 1e100, best_f1;
+
+    do {
+      float best_error = 1e100;
+      best_f1 = invalid_f1;
+
+      for(float f1 = range_min; f1 <= range_max; f1 += step) {
+        fseek(f, 0, SEEK_SET);
+
+        fprintf(stderr, "Trying %.0f hz...\n", f1);
+
+        error_sum = 0;
+        error_sum_count = 0;
+        run_for_frequencies(f, NULL, f1, f1 + 40000.0f);
+
+        if (error_sum_count != 0) {
+          float error = error_sum / error_sum_count;
+          if (error < best_error) {
+            fprintf(stderr, "Freq %.0f gives error %f\n", f1, error);
+            best_error = error;
+            best_f1 = f1;
+          }
+        }
+      }
+
+      if (best_f1 == invalid_f1) {
+        fprintf(stderr, "Nothing found...\n");
+        return 0;
+      }
+
+      range_min = best_f1 - step * 0.5f;
+      range_max = best_f1 + step * 0.5f;
+      step /= 10.0f;
+    } while (step >= 10.0f);
+
+    fprintf(stderr, "#define FREQUENCIES {%f, %f}\n", best_f1, best_f1 + 40000.0f);
+  }
+
+  return 0;
+}
