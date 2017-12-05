@@ -213,7 +213,7 @@ public:
   uint32_t bits_;
 };
 
-int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
+void run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
   uint8_t buf[16384];
   SignalDetector sd;
 
