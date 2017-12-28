@@ -16,6 +16,10 @@ Tested on a Raspberry Pi 3 with Raspbian Stretch with a NooElec Micro 3 USB SDR 
 
 An IKEA Sparsnäs unit (duuh)
 
+An MQTT broker installed, see this video for support/help to get it going: https://www.youtube.com/watch?v=VaWdvVVYU3A
+
+You can also pipe your MQTT data via node-red to InfluxDB for diplaying in for example Grafana, @naestrom have done a great job creating a node-red flow, please find more info here: https://github.com/Naesstrom/sparsnas_mqtt_nodered_influxdb
+
 Make sure you have updated your Raspbian installation, then
 ```
 sudo apt-get install libusb-1.0 rtl-sdr g++ git mosquitto-clients
@@ -137,7 +141,7 @@ core-ssh:~# mosquitto_sub -v -h 192.168.x.x -u username -P password -t '#'
 home/sparsnas {"Sequence":35851,"Watt": 7372.8,"kWh":18889.219,"battery":100,"FreqErr":0.57}
 ```
 
-Create a sensor in Home Assistant (example code, configuration.yaml):
+Create a sensor and monthly automation for Home Assistant (example code, configuration.yaml):
 ----------------------------------
 ```
 mqtt:
@@ -165,6 +169,49 @@ sensor:
     name: "Sparsnäs Battery remaining"
     unit_of_measurement: "%"
     value_template: '{{ value_json.battery | round(1) }}'
+
+automation old:
+  - trigger:
+      platform: time
+      at: '00:00:01'
+    condition:
+      condition: and
+      conditions:
+        - condition: template
+          value_template: '{{ now().day() | string == "1" }}'
+        - condition: or
+          conditions:
+            - condition: template
+              value_template: '{{ now().month() | string == "1" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "2" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "3" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "4" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "5" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "6" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "7" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "8" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "9" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "10" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "11" }}'
+            - condition: template
+              value_template: '{{ now().month() | string == "12" }}'
+    action:
+      service: mqtt.publish
+      data:
+        topic: 'template/kwh'
+        payload_template: "{{ states('sensor.total_kwh') }}"
+        retain: 'true'
+    alias: "Automation för månadsförbrukning Sparsnäs"
 ```
 
 
