@@ -24,8 +24,12 @@ The installation:
 -------------
 Make sure you have updated your Raspbian installation, then
 ```
+cd ~
 sudo apt-get install libusb-1.0 rtl-sdr g++ git mosquitto-clients
+git clone https://github.com/tubalainen/sparsnas_decoder
 ```
+The decoder is now cloned into /home/pi/sparsnas_decoder
+
 Using your favorite text editor, create a new file named /etc/modprobe.d/no-rtl.conf and put the following text in the file. You need to run that text editor as sudo (i.e. 'sudo vi' or 'sudo nano' etc) to write to the modprobe.d directory:
 ```
 sudo nano /etc/modprobe.d/no-rtl.conf
@@ -89,6 +93,8 @@ Perform a testrun:
 
 Create a bash script to send IKEA Sparsnäs output to MQTT broker:
 -----------
+The script will reside in /home/pi/
+
 ```
 pi@rpitest:~ $ nano sparsnas.sh
 ```
@@ -101,7 +107,7 @@ Make the bash script executable
 ```chmod +x sparsnas.sh```
 
 Copy the binary file to /usr/sbin
-```sudo cp sparsnas_decode /usr/sbin```
+```sudo cp /home/pi/sparsnas_decoder/sparsnas_decode /usr/sbin```
 
 Test the script:
 ```./sparsnas.sh```
