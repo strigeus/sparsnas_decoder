@@ -172,6 +172,7 @@ sensor:
     unit_of_measurement: "%"
     value_template: '{{ value_json.battery | round(1) }}'
 
+# Thanks to @bhaap for the monthly automation below
 automation old:
   - trigger:
       platform: time
