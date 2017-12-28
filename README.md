@@ -20,6 +20,8 @@ An MQTT broker installed, see this video for support/help to get it going: https
 
 You can also pipe your MQTT data via node-red to InfluxDB for diplaying in for example Grafana, @naestrom have done a great job creating a node-red flow, please find more info here: https://github.com/Naesstrom/sparsnas_mqtt_nodered_influxdb
 
+The installation:
+-------------
 Make sure you have updated your Raspbian installation, then
 ```
 sudo apt-get install libusb-1.0 rtl-sdr g++ git mosquitto-clients
