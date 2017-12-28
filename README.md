@@ -253,10 +253,10 @@ float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
 
 Note: Due to how the encryption works, it's possible for two different SPARSNÄS with unique sender_id to confuse each other. When decrypting a packet from sender B with the A key, it's possible that the resulting packet gets a sender_id equal to A, which means A will display incorrectly decrypted data from the B device.
 
-Example usage
+Example usage -- Also for troubleshooting
 -------------
 ```
-ludde@raspberrypi ~/sparsnas $ sudo rtl_sdr -f 868000000 -s 1024000 -g 40 - | ./sparsnas_decode               
+pi@raspberrypi:~ $ rtl_sdr -f 868000000 -s 1024000 -g 40 - | sparsnas_decode
 Found 1 device(s):
   0:  Realtek, RTL2838UHIDIR, SN: 00000001
 
@@ -267,6 +267,5 @@ Sampling at 1024000 S/s.
 Tuned to 868000000 Hz.
 Tuner gain set to 40.20 dB.
 Reading samples in async mode...
-[2016-12-05 21:29:35] 12711:   362.3 W. 43.339 kWh. Batt 99%.
-[2016-12-05 21:29:50] 12712:   362.6 W. 43.341 kWh. Batt 99%.
+{"Sequence":43096,"Watt": 7256.7,"kWh":21483.315,"battery":100,"FreqErr":0.83}
 ```
