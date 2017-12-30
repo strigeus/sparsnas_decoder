@@ -100,6 +100,9 @@ pi@rpitest:~ $ nano sparsnas.sh
 ```
 ```
 #!/bin/bash
+#To make sure that the mqtt broker is started, make the script wait 5 minutes.
+sleep 5m
+#Start sending information to mosquitto_pub
 rtl_sdr -f 868000000 -s 1024000 -g 40 - | sparsnas_decode 2>&1 | /usr/bin/mosquitto_pub -h 192.168.x.x -u username -P password -i sparsnas -l -t "home/sparsnas" &
 ```
 
