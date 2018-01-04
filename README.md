@@ -225,6 +225,21 @@ automation old:
         retain: 'true'
     alias: "Automation för månadsförbrukning Sparsnäs"
 ```
+Use two or more Sparsnäs at the same location (Experts only):
+------------------
+It is possible to use twoor more Sparsnäs at the same time.
+You will need to compile one sparsnas_decode per Sparsnäs Energy meter. The same sdr_rtl instance can be used.
+
+Edit your sparsnas.sh to look something like the following after you have compiled and copied all your instances to /usr/sbin/.
+```
+#!/bin/bash
+
+rtl_sdr -f 868000000 -s 1024000 -g 40 - | pee 'sparsnas_decode 2>&1' 'sparsnas_decode_bilen 2>&1' | /usr/bin/mosquitto_pub -h 192.168.21.10 -u username -P sniper -i sparsnas -l -t "home/sparsnas" &
+```
+
+If the "#define frequencies" are too close you will run into problems.
+
+If you do not want to spam your MQTT with "BAD" messages you would need to remove or comment out the "BAD" statements in the .cpp file above the JSON printout "elseif"
 
 
 
