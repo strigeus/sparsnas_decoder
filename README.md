@@ -180,6 +180,21 @@ sensor:
     name: "Sparsnäs Battery remaining"
     unit_of_measurement: "%"
     value_template: '{{ value_json.battery | round(1) }}'
+  - platform: mqtt
+    name: "template kwh sensor dag"
+    state_topic: "template/kwh/day"
+  - platform: template
+    sensors:
+      kwh_current_month:
+        friendly_name: "Förbrukning denna månad"
+        unit_of_measurement: "kWh"
+        value_template: >-
+          {{ (float(states.sensor.total_kwh.state) - float(states.sensor.template_kwh_sensor.state)) | round(1) }}
+      kwh_today:
+        friendly_name: "Förbrukning idag"
+        unit_of_measurement: "kWh"
+        value_template: >-
+          {{ (float(states.sensor.total_kwh.state) - float(states.sensor.template_kwh_sensor_dag.state)) | round(1) }}
 
 # Thanks to @bhaap for the monthly automation below
 automation old:
@@ -190,33 +205,33 @@ automation old:
       condition: and
       conditions:
         - condition: template
-          value_template: '{{ now().day() | string == "1" }}'
+          value_template: '{{ now().day | string == "1" }}'
         - condition: or
           conditions:
             - condition: template
-              value_template: '{{ now().month() | string == "1" }}'
+              value_template: '{{ now().month | string == "1" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "2" }}'
+              value_template: '{{ now().month | string == "2" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "3" }}'
+              value_template: '{{ now().month | string == "3" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "4" }}'
+              value_template: '{{ now().month | string == "4" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "5" }}'
+              value_template: '{{ now().month | string == "5" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "6" }}'
+              value_template: '{{ now().month | string == "6" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "7" }}'
+              value_template: '{{ now().month | string == "7" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "8" }}'
+              value_template: '{{ now().month | string == "8" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "9" }}'
+              value_template: '{{ now().month | string == "9" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "10" }}'
+              value_template: '{{ now().month | string == "10" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "11" }}'
+              value_template: '{{ now().month | string == "11" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "12" }}'
+              value_template: '{{ now().month | string == "12" }}'
     action:
       service: mqtt.publish
       data:
@@ -224,6 +239,19 @@ automation old:
         payload_template: "{{ states('sensor.total_kwh') }}"
         retain: 'true'
     alias: "Automation för månadsförbrukning Sparsnäs"
+    
+  - alias: "Spara kWh varje dag"
+    trigger:
+      platform: time
+      at: '00:00:01'
+    action:
+      service: mqtt.publish
+      data:
+        topic: 'template/kwh/day'
+        payload_template: "{{ states('sensor.total_kwh') }}"
+        retain: 'true'
+    
+    
 ```
 Use two or more Sparsnäs at the same location (Experts only):
 ------------------
