@@ -186,7 +186,7 @@ public:
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
         int battery = dec[17];
         float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
-        m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/1000, pulse%1000, battery, freq);
+        m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
 
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
