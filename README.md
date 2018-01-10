@@ -205,33 +205,33 @@ automation old:
       condition: and
       conditions:
         - condition: template
-          value_template: '{{ now().day() | string == "1" }}'
+          value_template: '{{ now().day | string == "1" }}'
         - condition: or
           conditions:
             - condition: template
-              value_template: '{{ now().month() | string == "1" }}'
+              value_template: '{{ now().month | string == "1" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "2" }}'
+              value_template: '{{ now().month | string == "2" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "3" }}'
+              value_template: '{{ now().month | string == "3" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "4" }}'
+              value_template: '{{ now().month | string == "4" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "5" }}'
+              value_template: '{{ now().month | string == "5" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "6" }}'
+              value_template: '{{ now().month | string == "6" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "7" }}'
+              value_template: '{{ now().month | string == "7" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "8" }}'
+              value_template: '{{ now().month | string == "8" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "9" }}'
+              value_template: '{{ now().month | string == "9" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "10" }}'
+              value_template: '{{ now().month | string == "10" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "11" }}'
+              value_template: '{{ now().month | string == "11" }}'
             - condition: template
-              value_template: '{{ now().month() | string == "12" }}'
+              value_template: '{{ now().month | string == "12" }}'
     action:
       service: mqtt.publish
       data:
@@ -244,71 +244,6 @@ automation old:
     trigger:
       platform: time
       at: '00:00:01'
-    condition:
-      condition: or
-      conditions:
-        - condition: template
-          value_template: '{{ now().day() | string == "1" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "2" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "3" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "4" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "5" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "6" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "7" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "8" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "9" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "10" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "11" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "12" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "13" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "14" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "15" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "16" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "17" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "18" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "19" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "20" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "21" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "22" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "23" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "24" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "25" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "26" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "27" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "28" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "29" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "30" }}'
-        - condition: template
-          value_template: '{{ now().day() | string == "31" }}'
     action:
       service: mqtt.publish
       data:
