@@ -177,10 +177,11 @@ public:
       uint32_t rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
 
       if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
-//        m += sprintf(m, "Bad: ");
-        m += sprintf(m, "{\"BadRxOrAdditionalNearBySparsnas\":\"true\"}");
-//        for (int i = 0; i < 18; i++)
-//          m += sprintf(m, "%.2X ", data_[i]);
+      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
+        m += sprintf(m, "{\"Bad\":\"");
+        for (int i = 0; i < 18; i++)
+          m += sprintf(m, "%.2X ", data_[i]);
+        m += sprintf(m, "\"}");
       } else {
         int seq = (dec[9] << 8 | dec[10]);
         int effect = (dec[11] << 8 | dec[12]);
@@ -190,7 +191,7 @@ public:
         if(watt > 3999){
           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
         }
-        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"}", seq, watt, pulse/1000, pulse%1000, battery, freq);
+        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"}", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
 
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);

@@ -183,6 +183,9 @@ sensor:
   - platform: mqtt
     name: "template kwh sensor dag"
     state_topic: "template/kwh/day"
+  - platform: mqtt
+    name: "template kwh sensor"
+    state_topic: "template/kwh"
   - platform: template
     sensors:
       kwh_current_month:
