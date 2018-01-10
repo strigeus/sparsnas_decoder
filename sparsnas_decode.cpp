@@ -192,8 +192,8 @@ public:
           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
         } else if(data_[4]^0x0f == 2){
           watt = effect * 24;
-        }        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"}", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
-
+        }        
+        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"}", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
           error_sum_count += 1;
