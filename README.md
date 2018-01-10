@@ -170,6 +170,7 @@ sensor:
     name: "Sparsnäs energy consumption momentary"
     unit_of_measurement: "W"
     value_template: '{{ value_json.Watt | round(1) }}'
+# Note that the sensor below will be resetted if you remove/reinstall the batteries in the Sparsnäs transmitter
   - platform: mqtt
     state_topic: "home/sparsnas"
     name: "Sparsnäs energy consumption over time"
@@ -181,23 +182,28 @@ sensor:
     unit_of_measurement: "%"
     value_template: '{{ value_json.battery | round(1) }}'
   - platform: mqtt
-    name: "template kwh sensor dag"
+    state_topic: "home/sparsnas"
+    name: "Sparsnäs Frequency Error"
+    unit_of_measurement: "%"
+    value_template: '{{ value_json.FreqErr }}'
+  - platform: mqtt
+    name: "Sparsnäs template kwh sensor day"
     state_topic: "template/kwh/day"
   - platform: mqtt
-    name: "template kwh sensor"
-    state_topic: "template/kwh"
+    name: "Sparsnäs template kwh sensor month"
+    state_topic: "template/kwh/month"
   - platform: template
     sensors:
       kwh_current_month:
-        friendly_name: "Förbrukning denna månad"
+        friendly_name: "Sparsnäs current month"
         unit_of_measurement: "kWh"
         value_template: >-
-          {{ (float(states.sensor.total_kwh.state) - float(states.sensor.template_kwh_sensor.state)) | round(1) }}
+          {{ (float(states.sensor.sparsnas_energy_consumption_over_time.state) - float(states.sensor.sparsnas_template_kwh_sensor_month.state)) | round(1) }}
       kwh_today:
-        friendly_name: "Förbrukning idag"
+        friendly_name: "Sparsnäs current day"
         unit_of_measurement: "kWh"
         value_template: >-
-          {{ (float(states.sensor.total_kwh.state) - float(states.sensor.template_kwh_sensor_dag.state)) | round(1) }}
+          {{ (float(states.sensor.sparsnas_energy_consumption_over_time.state) - float(states.sensor.sparsnastemplate_kwh_sensor_day.state)) | round(1) }}
 
 # Thanks to @bhaap for the monthly automation below
 automation old:
@@ -238,12 +244,12 @@ automation old:
     action:
       service: mqtt.publish
       data:
-        topic: 'template/kwh'
-        payload_template: "{{ states('sensor.total_kwh') }}"
+        topic: 'template/kwh/month'
+        payload_template: "{{ states('sensor.sparsnas_energy_consumption_over_time') }}"
         retain: 'true'
-    alias: "Automation för månadsförbrukning Sparsnäs"
+    alias: "Sparsnäs monthly"
     
-  - alias: "Spara kWh varje dag"
+  - alias: "Sparsnäs daily"
     trigger:
       platform: time
       at: '00:00:01'
@@ -251,11 +257,10 @@ automation old:
       service: mqtt.publish
       data:
         topic: 'template/kwh/day'
-        payload_template: "{{ states('sensor.total_kwh') }}"
+        payload_template: "{{ states('sensor.sparsnas_energy_consumption_over_time') }}"
         retain: 'true'
-    
-    
 ```
+
 Use two or more Sparsnäs at the same location (Experts only):
 ------------------
 It is possible to use twoor more Sparsnäs at the same time.
