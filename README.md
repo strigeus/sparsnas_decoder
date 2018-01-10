@@ -270,7 +270,7 @@ Edit your sparsnas.sh to look something like the following after you have compil
 ```
 #!/bin/bash
 
-rtl_sdr -f 868000000 -s 1024000 -g 40 - | pee 'sparsnas_decode 2>&1' 'sparsnas_decode_bilen 2>&1' | /usr/bin/mosquitto_pub -h 192.168.21.10 -u username -P sniper -i sparsnas -l -t "home/sparsnas" &
+rtl_sdr -f 868000000 -s 1024000 -g 40 - | pee 'sparsnas_decode 2>&1' 'sparsnas_decode_bilen 2>&1' | /usr/bin/mosquitto_pub -h 192.168.xx.xx -u username -P password -i sparsnas -l -t "home/sparsnas" &
 ```
 
 If the "#define frequencies" are too close you will run into problems.
