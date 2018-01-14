@@ -186,13 +186,12 @@ public:
         int effect = (dec[11] << 8 | dec[12]);
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
         int battery = dec[17];
-        float watt;
-//      Note that data_[4] cycles between 0-3 when you first put in the batterys in the sender. So please wait atleast 1 hour before trusting this next bit to work correct.
-        if(data_[4]^0x0f == 1){
+        float watt = effect * 24;
+        int data4 = data_[4]^0x0f;
+//      Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
+        if(data4 == 1){
           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
-        } else if(data_[4]^0x0f == 2){
-          watt = effect * 24;
-        }        
+        }      
         m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"}", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
