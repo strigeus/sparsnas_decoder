@@ -176,7 +176,7 @@ public:
 
       uint32_t rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
 
-      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || data_[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
+      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
         m += sprintf(m, "Bad: ");
         for (int i = 0; i < 18; i++)
           m += sprintf(m, "%.2X ", data_[i]);
