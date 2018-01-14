@@ -176,7 +176,7 @@ public:
 
       uint32_t rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
 
-      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || data_[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
+      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
         m += sprintf(m, "Bad: ");
         for (int i = 0; i < 18; i++)
           m += sprintf(m, "%.2X ", data_[i]);
@@ -185,8 +185,13 @@ public:
         int effect = (dec[11] << 8 | dec[12]);
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
         int battery = dec[17];
-        float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
-        m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/1000, pulse%1000, battery, freq);
+        float watt = effect * 24;
+        int data4 = data_[4]^0x0f;
+//      Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
+        if(data4 == 1){
+          watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
+        }
+        m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
 
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
