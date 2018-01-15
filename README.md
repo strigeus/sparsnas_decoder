@@ -205,7 +205,7 @@ sensor:
         friendly_name: "Sparsnäs current day"
         unit_of_measurement: "kWh"
         value_template: >-
-          {{ (float(states.sensor.sparsnas_energy_consumption_over_time.state) - float(states.sensor.sparsnastemplate_kwh_sensor_day.state)) | round(1) }}
+          {{ (float(states.sensor.sparsnas_energy_consumption_over_time.state) - float(states.sensor.sparsnas_template_kwh_sensor_day.state)) | round(1) }}
 
 # Thanks to @bhaap for the monthly automation below
 automation old:
