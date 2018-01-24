@@ -207,60 +207,57 @@ sensor:
         value_template: >-
           {{ (float(states.sensor.sparsnas_energy_consumption_over_time.state) - float(states.sensor.sparsnas_template_kwh_sensor_day.state)) | round(1) }}
 
-# Thanks to @bhaap for the monthly automation below
-automation old:
-  - trigger:
-      platform: time
-      at: '00:00:01'
-    condition:
-      condition: and
-      conditions:
-        - condition: template
-          value_template: '{{ now().day | string == "1" }}'
-        - condition: or
-          conditions:
-            - condition: template
-              value_template: '{{ now().month | string == "1" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "2" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "3" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "4" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "5" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "6" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "7" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "8" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "9" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "10" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "11" }}'
-            - condition: template
-              value_template: '{{ now().month | string == "12" }}'
-    action:
-      service: mqtt.publish
-      data:
-        topic: 'template/kwh/month'
-        payload_template: "{{ states('sensor.sparsnas_energy_consumption_over_time') }}"
-        retain: 'true'
-    alias: "Sparsnäs monthly"
-    
-  - alias: "Sparsnäs daily"
-    trigger:
-      platform: time
-      at: '00:00:01'
-    action:
-      service: mqtt.publish
-      data:
-        topic: 'template/kwh/day'
-        payload_template: "{{ states('sensor.sparsnas_energy_consumption_over_time') }}"
-        retain: 'true'
+# Thanks to @bhaap and @naestrom for the monthly and daily automation below
+automation:
+- action:
+  - data:
+      payload_template: '{{ states(''sensor.sparsnas_energy_consumption_over_time'')
+        }}'
+      retain: 'true'
+      topic: template/kwh/month
+    service: mqtt.publish
+  alias: Sparsnäs monthly consumption
+  condition:
+  - condition: template
+    value_template: '{{ now().month() | string == "1" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "2" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "3" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "4" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "5" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "6" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "7" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "8" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "9" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "10" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "11" }}'
+  - condition: template
+    value_template: '{{ now().month() | string == "12" }}'
+  id: '1516722867362'
+  trigger:
+  - at: 00:00:01
+    platform: time
+- action:
+  - data:
+      payload_template: "{{ states('sensor.sparsnas_energy_consumption_over_time')}}"
+      retain: 'true'
+      topic: template/kwh/day
+    service: mqtt.publish
+  alias: Sparsnäs daily consumption
+  condition: []
+  id: '1516806539856'
+  trigger:
+  - at: 00:00:02
+    platform: time
 ```
 
 Use two or more Sparsnäs at the same location (Experts only):
