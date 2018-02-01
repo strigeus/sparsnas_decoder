@@ -219,29 +219,29 @@ automation:
   alias: Sparsnäs monthly consumption
   condition:
   - condition: template
-    value_template: '{{ now().month() | string == "1" }}'
+    value_template: '{{ now().month | string == "1" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "2" }}'
+    value_template: '{{ now().month | string == "2" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "3" }}'
+    value_template: '{{ now().month | string == "3" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "4" }}'
+    value_template: '{{ now().month | string == "4" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "5" }}'
+    value_template: '{{ now().month | string == "5" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "6" }}'
+    value_template: '{{ now().month | string == "6" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "7" }}'
+    value_template: '{{ now().month | string == "7" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "8" }}'
+    value_template: '{{ now().month | string == "8" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "9" }}'
+    value_template: '{{ now().month | string == "9" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "10" }}'
+    value_template: '{{ now().month | string == "10" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "11" }}'
+    value_template: '{{ now().month | string == "11" }}'
   - condition: template
-    value_template: '{{ now().month() | string == "12" }}'
+    value_template: '{{ now().month | string == "12" }}'
   id: '1516722867362'
   trigger:
   - at: 00:00:01
