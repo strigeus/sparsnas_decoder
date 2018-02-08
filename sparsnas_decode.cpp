@@ -1,34 +1,32 @@
-#include <stdint.h>
-#include <stdio.h>
-#define _USE_MATH_DEFINES 1
-#include <math.h>
+#include <cstdint>
+#include <cstdio>
+#include <cmath>
 #include <complex>
-#include <string>
-#include <time.h>
-#include <string.h>
+#include <cstring>
 
-//////////////////////////////////////
-#define PULSES_PER_KWH 1000
+// This is the number of pulse per kWh consumed of your elecricity meter.
+// In Sweden at least, the standard seems to be 1 pulse per Wh, i.e. 1000 pulses per kWh
+int PULSES_PER_KWH=1000;
+
 
 // These are the last 6 digits from the serial number of the sender.
 // The serial number is located under the battery.
 // The full serial number looks like "400 666 111"
-#define SENSOR_ID 666111
+int  SENSOR_ID;
 
 // It seems like different RTL-SDR tune to slightly different frequencies
 // Or I'm not really sure what's up, but the 0 and 1 frequencies differ
-// between different RTL-SDR and/or sparsnäs. You can have a look at the 
+// between different RTL-SDR and/or sparsnäs. You can have a look at the
 // signal in a wave file editor and you can measure the wavelengths of the
 // sine waves and put in appropriate values here.
 //#define FREQUENCIES {12500.0,50000.0}
-#define FREQUENCIES {67500.0,105000.0}
-//#define FREQUENCIES {20000.0,60000.0}
+float frequencies[2]; //={67500.0,105000.0};
 
-//////////////////////////////////////
+
+
 
 FILE *outfile;
-int testing;
-
+int testing=0;
 
 
 // Implementation of Complex numbers, cause std::complex is stupid and doesn't inline properly.
@@ -155,7 +153,7 @@ public:
 
 //      m += sprintf(m, "[%.4d-%.2d-%.2d %.2d:%.2d:%.2d] ", timeinfo->tm_year + 1900,
 //        timeinfo->tm_mon + 1,
-//        timeinfo->tm_mday, 
+//        timeinfo->tm_mday,
 //        timeinfo->tm_hour,
 //        timeinfo->tm_min,
 //        timeinfo->tm_sec);
@@ -176,11 +174,11 @@ public:
 
       uint32_t rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
 
-        if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
+      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
         m += sprintf(m, "{\"Bad\":\"");
         for (int i = 0; i < 18; i++)
           m += sprintf(m, "%.2X ", data_[i]);
-        m += sprintf(m, "\"}");
+        m += sprintf(m, "\"");
       } else {
         int seq = (dec[9] << 8 | dec[10]);
         int effect = (dec[11] << 8 | dec[12]);
@@ -191,15 +189,15 @@ public:
 //      Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
         if(data4 == 1){
           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
-        }      
-        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"}", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
+        }
+        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
           error_sum_count += 1;
         }
       }
 
-      m += sprintf(m, (crc == packet_crc) ? "\n" : "CRC ERR\n");
+      m += sprintf(m, (crc == packet_crc) ? ",\"CRC\":\"ok\"}\n" : ",\"CRC\": \"ERR\"}\n");
 
       if (!testing) {
         fprintf(stderr, "%s", mesg);
@@ -234,7 +232,7 @@ int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
 
   bool last_signal = false;
   int last_sigtime = 0;
-  
+
   const float PERFECT_PULSE_LEN = 26.6666666f * S / 1024000.0;
   const int MIN_PULSE_LEN = 12 * S / 1024000.0;
   const int MAX_PULSE_LEN = 42 * S / 1024000.0;
@@ -285,7 +283,7 @@ int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
 
       if (signal != last_signal) {
         int pulse_len = (unsigned)j - last_sigtime;
-        
+
         if (pulse_len >= MIN_PULSE_LEN && (sd.has_some_sync() || pulse_len < MAX_PULSE_LEN)) {
           if (signal)
             avg_err = -avg_err;
@@ -313,68 +311,110 @@ int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
 }
 
 
-int main(int argc, char **argv)
-{
-  FILE *f = stdin;
-  if (argc >= 2) {
-    f = fopen(argv[1], "rb");
-    if (!f) {
-      fprintf(stderr, "Failed load!\n");
-      return 1;
-    }
-//    for loading wav files
-//    fseek(f, 44, SEEK_SET);
-  }
-
-  testing = (argc >= 3 && strcmp(argv[2], "--find-frequencies") == 0);
-
-  outfile = fopen("sparsnas.log", "a");
-
-  FILE *logfile = NULL;// fopen("logfile.pcm", "wb");
-
-
-  if (!testing) {
-    float frequencies[] = FREQUENCIES;
-    run_for_frequencies(f, logfile, frequencies[0], frequencies[1]);
-  } else {
+int run_calibration(FILE *f){
+    testing = 1;
     float range_min = -100000, range_max = 100000, step = 5000;
     float invalid_f1 = 1e100, best_f1;
 
     do {
-      float best_error = 1e100;
-      best_f1 = invalid_f1;
+        float best_error = 1e100;
+        best_f1 = invalid_f1;
 
-      for(float f1 = range_min; f1 <= range_max; f1 += step) {
-        fseek(f, 0, SEEK_SET);
+        for(float f1 = range_min; f1 <= range_max; f1 += step) {
+            fseek(f, 0, SEEK_SET);
 
-        fprintf(stderr, "Trying %.0f hz...\n", f1);
+            fprintf(stderr, "Trying %.0f hz...\n", f1);
 
-        error_sum = 0;
-        error_sum_count = 0;
-        run_for_frequencies(f, NULL, f1, f1 + 40000.0f);
+            error_sum = 0;
+            error_sum_count = 0;
+            run_for_frequencies(f, NULL, f1, f1 + 40000.0f);
 
-        if (error_sum_count != 0) {
-          float error = error_sum / error_sum_count;
-          if (error < best_error) {
-            fprintf(stderr, "Freq %.0f gives error %f\n", f1, error);
-            best_error = error;
-            best_f1 = f1;
-          }
+            if (error_sum_count != 0) {
+                float error = error_sum / error_sum_count;
+                if (error < best_error) {
+                    fprintf(stderr, "Freq %.0f gives error %f\n", f1, error);
+                    best_error = error;
+                    best_f1 = f1;
+                }
+            }
         }
-      }
 
-      if (best_f1 == invalid_f1) {
-        fprintf(stderr, "Nothing found...\n");
-        return 0;
-      }
+        if (best_f1 == invalid_f1) {
+            fprintf(stderr, "Nothing found...\n");
+            return 1;
+        }
 
-      range_min = best_f1 - step * 0.5f;
-      range_max = best_f1 + step * 0.5f;
-      step /= 10.0f;
+        range_min = best_f1 - step * 0.5f;
+        range_max = best_f1 + step * 0.5f;
+        step /= 10.0f;
     } while (step >= 10.0f);
 
     fprintf(stderr, "#define FREQUENCIES {%f, %f}\n", best_f1, best_f1 + 40000.0f);
-  }
+    printf("export SPARSNAS_FREQ_MIN=%f\nexport SPARSNAS_FREQ_MAX=%f\n" , best_f1, best_f1 + 40000.0f);
+    return 0;
+}
 
-  return 0;
+
+int get_env_int(const char * env_var_name,int * buf) {
+
+    if (const char *env_p = std::getenv(env_var_name))
+        if (sscanf(env_p,"%d",buf))
+            return 1;
+    return 0;
+}
+
+
+int main(int argc, char **argv)
+{
+    int tmp;
+    FILE *f = stdin;
+    if (argc >= 2) {
+        f = fopen(argv[1], "rb");
+        if (!f) {
+            fprintf(stderr, "Failed load!\n");
+            return 1;
+        }
+    }
+
+
+    //Get SENSOR_ID from environment
+    if (get_env_int("SPARSNAS_SENSOR_ID",&tmp))
+        SENSOR_ID = tmp;
+    else {
+        fprintf(stderr, "SPARSNAS_SENSOR_ID not defined or incorrect. Aborting!\n");
+        return 1;
+    }
+
+    if (argc >= 3 && strcmp(argv[2], "--find-frequencies") == 0)
+      return run_calibration(f);
+
+
+    //Get the parameters from environment
+    if (get_env_int("SPARSNAS_PULSES_PER_KWH",&tmp))
+        PULSES_PER_KWH = tmp;
+
+    if (get_env_int("SPARSNAS_FREQ_MIN",&tmp))
+        frequencies[0] = tmp;
+    else {
+        fprintf(stderr, "SPARSNAS_FREQ_MIN not defined or incorrect. Aborting!\n");
+        return 1;
+    }
+
+    if (get_env_int("SPARSNAS_FREQ_MAX",&tmp))
+        frequencies[1] = tmp;
+    else {
+        fprintf(stderr, "SPARSNAS_FREQ_MAX not defined or incorrect. Aborting!\n");
+        return 1;
+    }
+
+    FILE *logfile;
+    if (const char *env_p = std::getenv("SPARSNAS_LOG"))
+        logfile=fopen(env_p,"a");
+    else
+        logfile = NULL;
+
+    //Run the main program
+    run_for_frequencies(f, logfile, frequencies[0], frequencies[1]);
+
+    return 0;
 }
