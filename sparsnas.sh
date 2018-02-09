@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -ae
 
 SPARSNAS="/usr/bin/sparsnas_decode"
 RTL_SDR="rtl_sdr -f 868000000 -s 1024000 -g 40 -"
