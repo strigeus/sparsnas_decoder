@@ -2,7 +2,7 @@
 
 
 SPARSNAS="/usr/bin/sparsnas_decode"
-RTL_SDR="rtl_sdr -f 868000000 -s 1024000 -g 10 -"
+RTL_SDR="rtl_sdr -f 868000000 -s 1024000 -g 40 -"
 
 if [ -e /etc/sparsnas.conf ]; then
   . /etc/sparsnas.conf
