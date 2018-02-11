@@ -5,6 +5,9 @@ This is a fork is adapted for output in JSON format to a MQTT broker.
 
 If you want to implement the same thing as below into an ESP8266 please see the following project: https://github.com/bphermansson/EspSparsnasGateway
 
+If you want to get into the bits and bytes of the system please see:
+https://github.com/kodarn/Sparsnas
+
 This is a decoder for IKEA SPARSNÄS.
 ===================================
 
