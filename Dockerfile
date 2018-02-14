@@ -1,34 +1,34 @@
-# docker build --build-arg SENSOR_ID=1234 --build-arg PULSES_PER_KWH=10000 \
-#   --build-arg MQTT_ARG="-h 192.168.x.x -u username -P password -i sparsnas".
+# docker build --build-arg SENSORS="12 10000" \
+#  --build-arg MQTT_HOST=192.168.x.x --build-arg MQTT_PORT \
+#  --build-arg=MQTT_USERNAME=username --build-arg=MQTT_PASSWORD
 
 FROM alpine:edge as BUILD_ENV
 
 COPY ./sparsnas_decode.cpp /build/
 
-RUN apk add --no-cache g++ && \
-    g++ -o /build/sparsnas_decode -static-libgcc -static-libstdc++ -O2 /build/sparsnas_decode.cpp
+RUN apk add --no-cache g++ mosquitto-dev && \
+    g++ -o /build/sparsnas_decode -O2 -Wall /build/sparsnas_decode.cpp -lmosquitto
 
 FROM alpine:edge
 
-ARG SENSOR_ID
-ENV SPARSNAS_SENSOR_ID=$SENSOR_ID
-ARG PULSES_PER_KWH=1000
-ENV SPARSNAS_PULSES_PER_KWH=$PULSES_PER_KWH
-ARG SPARSNAS_FREQ_MIN
-ARG SPARSNAS_FREQ_MAX
-ARG MQTT_ARG
-ENV MQTT_ARG=$MQTT_ARG
+ARG SENSORS
+ARG MQTT_HOST
+ARG MQTT_PORT
+ARG MQTT_USERNAME
+ARG MQTT_PASSWORD
+ENV MQTT_HOST=${MQTT_HOST:-localhost}
+ENV MQTT_PORT=${MQTT_PORT:-1883}
+ENV MQTT_USERNAME=$MQTT_USERNAME
+ENV MQTT_PASSWORD=$MQTT_PASSWORD
 
 COPY --from=BUILD_ENV /build/sparsnas_decode /usr/bin/
 COPY sparsnas.sh /
 
 RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ --allow-untrusted \
       rtl-sdr \
-      mosquitto-clients && \
-    \
-    if [ "$SPARSNAS_FREQ_MIN" -a "$SPARSNAS_FREQ_MAX" ]; then \
-      echo "export SPARSNAS_FREQ_MIN=${SPARSNAS_FREQ_MIN}" >> /etc/sparsnas.conf && \
-      echo "export SPARSNAS_FREQ_MAX=${SPARSNAS_FREQ_MAX}" >> /etc/sparsnas.conf; \
-   fi
+      mosquitto-libs++ \
+      zsh
+
+RUN if [ "$SENSORS" ]; then sed -i "s/^SENSORS=.*/SENSORS=($SENSORS)/" /sparsnas_multiple.sh; fi
 
 ENTRYPOINT ["/sparsnas.sh"]
