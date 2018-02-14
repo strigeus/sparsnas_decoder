@@ -138,6 +138,7 @@ public:
 
   void add_fail(float freq) {
     char mesg[1024];
+    int bad = false;
 
     shift_ = 0;
     found_sync_ = 0;
@@ -175,11 +176,13 @@ public:
       uint32_t rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
 
       if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
+        bad = true;
         m += sprintf(m, "{\"Bad\":\"");
         for (int i = 0; i < 18; i++)
           m += sprintf(m, "%.2X ", data_[i]);
         m += sprintf(m, "\"");
       } else {
+        bad = false;
         int seq = (dec[9] << 8 | dec[10]);
         int effect = (dec[11] << 8 | dec[12]);
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
@@ -190,17 +193,18 @@ public:
         if(data4 == 1){
           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
         }
-        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
+        m += sprintf(m, "{\"Sequence\": %5d,\"Watt\": %7.2f,\"kWh\": %d.%.3d,\"battery\": %d,\"FreqErr\": %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
           error_sum_count += 1;
         }
       }
 
-      m += sprintf(m, (crc == packet_crc) ? ",\"CRC\":\"ok\"}\n" : ",\"CRC\": \"ERR\"}\n");
+      m += sprintf(m, (crc == packet_crc) ? ",\"CRC\":\"ok\"" : ",\"CRC\": \"ERR\"");
 
+      m += sprintf(m, ",\"Sensor\":%6d}\n", SENSOR_ID);
       if (!testing) {
-        fprintf(stderr, "%s", mesg);
+        bad ? fprintf(stderr, "%s", mesg) : printf("%s", mesg);
         if (outfile) {
           fprintf(outfile, "%s", mesg);
           fflush(outfile);
@@ -216,7 +220,7 @@ public:
   uint32_t bits_;
 };
 
-int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
+void run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
   uint8_t buf[16384];
   SignalDetector sd;
 
