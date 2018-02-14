@@ -6,13 +6,13 @@
 
 // This is the number of pulse per kWh consumed of your elecricity meter.
 // In Sweden at least, the standard seems to be 1 pulse per Wh, i.e. 1000 pulses per kWh
-int PULSES_PER_KWH=1000;
+uint32_t PULSES_PER_KWH=1000;
 
 
 // These are the last 6 digits from the serial number of the sender.
 // The serial number is located under the battery.
 // The full serial number looks like "400 666 111"
-int  SENSOR_ID;
+uint32_t SENSOR_ID;
 
 // It seems like different RTL-SDR tune to slightly different frequencies
 // Or I'm not really sure what's up, but the 0 and 1 frequencies differ
@@ -224,8 +224,8 @@ void run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
   uint8_t buf[16384];
   SignalDetector sd;
 
-  Complex hist1[27] = { 0 };
-  Complex hist2[27] = { 0 };
+  Complex hist1[27] = { {0} };
+  Complex hist2[27] = { {0} };
   Complex sum1 = {0, 0};
   Complex sum2 = {0, 0};
 
