@@ -29,6 +29,6 @@ RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/test
       mosquitto-libs++ \
       zsh
 
-RUN if [ "$SENSORS" ]; then sed -i "s/^SENSORS=.*/SENSORS=($SENSORS)/" /sparsnas_multiple.sh; fi
+RUN if [ "$SENSORS" ]; then sed -i "s/^SENSORS=.*/SENSORS=($SENSORS)/" /sparsnas.sh; fi
 
 ENTRYPOINT ["/sparsnas.sh"]
