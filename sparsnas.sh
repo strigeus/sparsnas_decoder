@@ -1,5 +1,7 @@
 #!/bin/zsh
 
+set -o pipefail
+
 #Associatve array
 typeset -A SENSORS
 SENSORS=(722270 1000 602064 10000) #(id_1 pulses_1 id_2 pulses_2)
