@@ -11,7 +11,7 @@ RTL_SDR=(/usr/bin/rtl_sdr -f 868000000 -s 1024000 -g 40 -)
 SPARSNAS_DECODE="/usr/bin/sparsnas_decode"
 
 FIND_FREQ="SPARSNAS_SENSOR_ID=_SENSE_ $SPARSNAS_DECODE /tmp/sparsnas.raw --find-frequencies > /tmp/_SENSE_.freq"
-DECODE="> >(SPARSNAS_SENSOR_ID=_SENSE_ PULSES_PER_KWH=_pulse_ SPARSNAS_FREQ_MIN=_min_ SPARSNAS_FREQ_MAX=_max_ /usr/bin/sparsnas_decode)"
+DECODE="> >(SPARSNAS_SENSOR_ID=_SENSE_ SPARSNAS_PULSES_PER_KWH=_pulse_ SPARSNAS_FREQ_MIN=_min_ SPARSNAS_FREQ_MAX=_max_ /usr/bin/sparsnas_decode)"
 
 [ "${(k)SENSORS}" ] || exit 0
 
@@ -30,7 +30,7 @@ function decode () {
   CMD=""
   for i in ${(k)SENSORS}; do
     _c=$(echo $DECODE | \
-      sed -e "s/_SENSE_/$i/g" -e "s/_pulse_/$PULSES[$i]/" \
+      sed -e "s/_SENSE_/$i/g" -e "s/_pulse_/$SENSORS[$i]/" \
       -e "s/_min_/$(awk -F= '/MIN/ {print $2}' < /tmp/$i.freq)/" \
       -e "s/_max_/$(awk -F= '/MAX/ {print $2}' < /tmp/$i.freq)/")
     CMD="$CMD $_c"
