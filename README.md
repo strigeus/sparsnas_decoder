@@ -34,7 +34,7 @@ The following instructions are for you that for some reason don't want to use do
 ```sh
 sudo apt-get update && sudo apt-get install -y git g++ libmosquitto-dev libmosquitto1 rtl-sdr zsh busybox
 cd ~
-git clone https://github.com/fredrike/sparsnas_decoder
+git clone https://github.com/tubalainen/sparsnas_decoder
 cd sparsnas_decoder
 git checkout dockerVersion
 
