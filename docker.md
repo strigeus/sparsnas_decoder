@@ -9,7 +9,7 @@
 docker build -t sparsnas --build-arg SENSORS="1234 1000" \
   --build-arg MQTT_HOST=192.168.x.x --build-arg MQTT_PORT=1183 \
   --build-arg=MQTT_USERNAME=username --build-arg=MQTT_PASSWORD=password \
-  https://github.com/tubalainen/sparsnas_decoder.git#dockerVersion
+  https://github.com/tubalainen/sparsnas_decoder.git
 ```
 
 2. Run the container (it is possible to set the arguments above at runtime as
