@@ -1,3 +1,36 @@
+homeassistant:
+  customize:
+    sensor.sparsnas_battery_remaining:
+      hidden: true
+      icon: mdi:battery-outline
+    sensor.sparsnas_frequency_error:
+      hidden: true
+      icon: mdi:signal
+    sensor.kwh_today:
+      group:
+        group.sparsnas:
+          friendly_name: Today
+      icon: mdi:flash-circle
+    sensor.kwh_current_month:
+      group:
+        group.sparsnas:
+          friendly_name: This Month
+      icon: mdi:flash-circle
+    sensor.sparsnas_template_kwh_sensor_day:
+      hidden: true
+    sensor.sparsnas_template_kwh_sensor_month:
+      hidden: true
+    sensor.sparsnas_energy_consumption_over_time:
+      hidden: true
+      icon: mdi:flash-circle
+    sensor.sparsnas_energy_consumption_momentary:
+      extra_data_template: '${"Battery: " + entities[''sensor.sparsnas_battery_remaining''].state
+        + "%, Signal: " + entities[''sensor.sparsnas_frequency_error''].state}'
+      group:
+        group.sparsnas:
+          friendly_name: Power usage
+      icon: mdi:flash-circle
+
 sensor:
   - platform: mqtt
     state_topic: "home/sparsnas"
