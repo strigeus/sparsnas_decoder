@@ -54,41 +54,47 @@ sensor:
 automation:
 - action:
   - data:
-      payload_template: '{{ states(''sensor.sparsnas_energy_consumption_over_time'')
-        }}'
+      payload_template: '{{ states(''sensor.sparsnas_energy_consumption_over_time'') }}'
       retain: 'true'
       topic: template/kwh/month
     service: mqtt.publish
   alias: Sparsnäs monthly consumption
-  condition:
-  - condition: template
-    value_template: '{{ now().month() | string == "1" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "2" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "3" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "4" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "5" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "6" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "7" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "8" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "9" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "10" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "11" }}'
-  - condition: template
-    value_template: '{{ now().month() | string == "12" }}'
-  id: '1516722867362'
   trigger:
-  - at: 00:00:01
     platform: time
+    at: '00:00:01'
+  condition:
+    condition: and
+    conditions:
+      - condition: template
+        value_template: '{{ now().day | string == "1" }}'
+      - condition: or
+        conditions:
+          - condition: template
+            value_template: '{{ now().month | string == "1" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "2" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "3" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "4" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "5" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "6" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "7" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "8" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "9" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "10" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "11" }}'
+          - condition: template
+            value_template: '{{ now().month | string == "12" }}'
+  id: '1516722867362'
+
 - action:
   - data:
       payload_template: "{{ states('sensor.sparsnas_energy_consumption_over_time')}}"
@@ -101,6 +107,25 @@ automation:
   trigger:
   - at: 00:00:02
     platform: time
+
+- action:
+  - data:
+      entity_id: automation.sparsnas_daily_consumption
+    service: automation.trigger
+  - data:
+      entity_id: automation.sparsnas_monthly_consumption
+    service: automation.trigger
+  alias: trigger-sparsnas-if-unknown
+  condition:
+    condition: state
+    entity_id: sensor.sparsnas_template_kwh_sensor_month
+    state: Unknown
+  trigger:
+    - event: state
+      entity_id: sensor.sparsnas_energy_consumption_over_time
+      from: 'unknown'
+  id: '159293779102'
+
 
 group:
   sparsnas:
