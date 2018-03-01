@@ -1,34 +1,41 @@
-#include <stdint.h>
-#include <stdio.h>
-#define _USE_MATH_DEFINES 1
-#include <math.h>
+#include <cstdint>
+#include <cstdio>
+#include <cmath>
 #include <complex>
-#include <string>
-#include <time.h>
-#include <string.h>
+#include <cstring>
+#include <mosquitto.h>
 
-//////////////////////////////////////
-#define PULSES_PER_KWH 1000
+// This is the number of pulse per kWh consumed of your elecricity meter.
+// In Sweden at least, the standard seems to be 1 pulse per Wh, i.e. 1000 pulses per kWh
+int PULSES_PER_KWH=1000;
+
 
 // These are the last 6 digits from the serial number of the sender.
 // The serial number is located under the battery.
 // The full serial number looks like "400 666 111"
-#define SENSOR_ID 666111
+int SENSOR_ID;
 
 // It seems like different RTL-SDR tune to slightly different frequencies
 // Or I'm not really sure what's up, but the 0 and 1 frequencies differ
-// between different RTL-SDR and/or sparsnäs. You can have a look at the 
+// between different RTL-SDR and/or sparsnäs. You can have a look at the
 // signal in a wave file editor and you can measure the wavelengths of the
 // sine waves and put in appropriate values here.
 //#define FREQUENCIES {12500.0,50000.0}
-#define FREQUENCIES {67500.0,105000.0}
-//#define FREQUENCIES {20000.0,60000.0}
+float frequencies[2]; //={67500.0,105000.0};
 
-//////////////////////////////////////
+// MQTT connection
+struct mosquitto *mosq = NULL;
+
+// MQTT server connection parameters
+char MQTT_HOSTNAME[64];
+uint32_t MQTT_PORT = 1883;
+char MQTT_USERNAME[64];
+char MQTT_PASSWORD[64];
+char MQTT_TOPIC[64];
+char MQTT_CRC_TOPIC[64];
 
 FILE *outfile;
-int testing;
-
+int testing=0;
 
 
 // Implementation of Complex numbers, cause std::complex is stupid and doesn't inline properly.
@@ -140,6 +147,7 @@ public:
 
   void add_fail(float freq) {
     char mesg[1024];
+    int bad = false;
 
     shift_ = 0;
     found_sync_ = 0;
@@ -147,18 +155,6 @@ public:
       uint16_t crc = crc16(data_, 18);
       uint16_t packet_crc = data_[18] << 8 | data_[19];
       char *m = mesg;
-
-      time_t mytime;
-      mytime = time(NULL);
-      struct tm * timeinfo;
-      timeinfo = localtime(&mytime);
-
-//      m += sprintf(m, "[%.4d-%.2d-%.2d %.2d:%.2d:%.2d] ", timeinfo->tm_year + 1900,
-//        timeinfo->tm_mon + 1,
-//        timeinfo->tm_mday, 
-//        timeinfo->tm_hour,
-//        timeinfo->tm_min,
-//        timeinfo->tm_sec);
 
       uint8_t dec[32];
 
@@ -174,35 +170,54 @@ public:
       for(size_t i = 0; i < 13; i++)
         dec[5 + i] = data_[5 + i] ^ enc_key[i % 5];
 
-      uint32_t rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
+      int rcv_sensor_id = dec[5] << 24 | dec[6] << 16 | dec[7] << 8 | dec[8];
 
-        if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
+      if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
+        bad = true;
         m += sprintf(m, "{\"Bad\":\"");
         for (int i = 0; i < 18; i++)
           m += sprintf(m, "%.2X ", data_[i]);
-        m += sprintf(m, "\"}");
-      } else {
+        m += sprintf(m, "\"");
+      } else if (crc == packet_crc) {
+        bad = false;
         int seq = (dec[9] << 8 | dec[10]);
-        int effect = (dec[11] << 8 | dec[12]);
+        unsigned int effect = (dec[11] << 8 | dec[12]);
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
         int battery = dec[17];
         float watt = effect * 24;
         int data4 = data_[4]^0x0f;
 //      Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
         if(data4 == 1){
-          watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
-        }      
-        m += sprintf(m, "{\"Sequence\":\"%5d\",\"Watt\":\"%7.1f\",\"kWh\":\"%d.%.3d\",\"battery\":\"%d\",\"FreqErr\":\"%.2f\"}", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
+          watt = (double)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
+        }
+        m += sprintf(m, "{\"Sequence\": %5d,\"Watt\": %7.2f,\"kWh\": %d.%.3d,\"battery\": %d,\"FreqErr\": %.2f,\"Effect\": %d", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq, effect);
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
           error_sum_count += 1;
         }
+      } else {
+        m += sprintf(m, "{\"CRC\": \"ERR\"");
       }
 
-      m += sprintf(m, (crc == packet_crc) ? "\n" : "CRC ERR\n");
-
+      m += sprintf(m, ",\"Sensor\":%6d}\n", SENSOR_ID);
+      char* topic = (crc == packet_crc) ? MQTT_TOPIC : MQTT_CRC_TOPIC;
       if (!testing) {
-        fprintf(stderr, "%s", mesg);
+        if (mosq && !bad) {
+          int ret = mosquitto_publish (mosq, NULL, topic, strlen(mesg) - 1, mesg, 0, true);
+          if ( ret != MOSQ_ERR_SUCCESS) {
+            mosquitto_reconnect(mosq);
+            ret = mosquitto_publish (mosq, NULL, topic, strlen(mesg) - 1, mesg, 0, true);
+            if (ret != MOSQ_ERR_SUCCESS) {
+              fprintf(stderr, "Can't publish to Mosquitto server %d %s\n", ret, mosquitto_strerror(ret) );
+              // Tear down the connecton and exit.
+              mosquitto_disconnect (mosq);
+              mosquitto_destroy (mosq);
+              mosquitto_lib_cleanup();
+              exit(-1);
+            }
+          }
+        } else
+          bad ? fprintf(stderr, "%s", mesg) : printf("%s", mesg);
         if (outfile) {
           fprintf(outfile, "%s", mesg);
           fflush(outfile);
@@ -218,12 +233,12 @@ public:
   uint32_t bits_;
 };
 
-int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
+void run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
   uint8_t buf[16384];
   SignalDetector sd;
 
-  Complex hist1[27] = { 0 };
-  Complex hist2[27] = { 0 };
+  Complex hist1[27] = { {0} };
+  Complex hist2[27] = { {0} };
   Complex sum1 = {0, 0};
   Complex sum2 = {0, 0};
 
@@ -234,7 +249,7 @@ int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
 
   bool last_signal = false;
   int last_sigtime = 0;
-  
+
   const float PERFECT_PULSE_LEN = 26.6666666f * S / 1024000.0;
   const int MIN_PULSE_LEN = 12 * S / 1024000.0;
   const int MAX_PULSE_LEN = 42 * S / 1024000.0;
@@ -285,7 +300,7 @@ int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
 
       if (signal != last_signal) {
         int pulse_len = (unsigned)j - last_sigtime;
-        
+
         if (pulse_len >= MIN_PULSE_LEN && (sd.has_some_sync() || pulse_len < MAX_PULSE_LEN)) {
           if (signal)
             avg_err = -avg_err;
@@ -313,68 +328,153 @@ int run_for_frequencies(FILE *f, FILE *logfile, float F1, float F2) {
 }
 
 
-int main(int argc, char **argv)
-{
-  FILE *f = stdin;
-  if (argc >= 2) {
-    f = fopen(argv[1], "rb");
-    if (!f) {
-      fprintf(stderr, "Failed load!\n");
-      return 1;
-    }
-//    for loading wav files
-//    fseek(f, 44, SEEK_SET);
-  }
-
-  testing = (argc >= 3 && strcmp(argv[2], "--find-frequencies") == 0);
-
-  outfile = fopen("sparsnas.log", "a");
-
-  FILE *logfile = NULL;// fopen("logfile.pcm", "wb");
-
-
-  if (!testing) {
-    float frequencies[] = FREQUENCIES;
-    run_for_frequencies(f, logfile, frequencies[0], frequencies[1]);
-  } else {
+int run_calibration(FILE *f){
+    testing = 1;
     float range_min = -100000, range_max = 100000, step = 5000;
     float invalid_f1 = 1e100, best_f1;
 
     do {
-      float best_error = 1e100;
-      best_f1 = invalid_f1;
+        float best_error = 1e100;
+        best_f1 = invalid_f1;
 
-      for(float f1 = range_min; f1 <= range_max; f1 += step) {
-        fseek(f, 0, SEEK_SET);
+        for(float f1 = range_min; f1 <= range_max; f1 += step) {
+            fseek(f, 0, SEEK_SET);
 
-        fprintf(stderr, "Trying %.0f hz...\n", f1);
+            fprintf(stderr, "Trying %.0f hz...\n", f1);
 
-        error_sum = 0;
-        error_sum_count = 0;
-        run_for_frequencies(f, NULL, f1, f1 + 40000.0f);
+            error_sum = 0;
+            error_sum_count = 0;
+            run_for_frequencies(f, NULL, f1, f1 + 40000.0f);
 
-        if (error_sum_count != 0) {
-          float error = error_sum / error_sum_count;
-          if (error < best_error) {
-            fprintf(stderr, "Freq %.0f gives error %f\n", f1, error);
-            best_error = error;
-            best_f1 = f1;
-          }
+            if (error_sum_count != 0) {
+                float error = error_sum / error_sum_count;
+                if (error < best_error) {
+                    fprintf(stderr, "Freq %.0f gives error %f\n", f1, error);
+                    best_error = error;
+                    best_f1 = f1;
+                }
+            }
         }
-      }
 
-      if (best_f1 == invalid_f1) {
-        fprintf(stderr, "Nothing found...\n");
-        return 0;
-      }
+        if (best_f1 == invalid_f1) {
+            fprintf(stderr, "Nothing found...\n");
+            return 1;
+        }
 
-      range_min = best_f1 - step * 0.5f;
-      range_max = best_f1 + step * 0.5f;
-      step /= 10.0f;
+        range_min = best_f1 - step * 0.5f;
+        range_max = best_f1 + step * 0.5f;
+        step /= 10.0f;
     } while (step >= 10.0f);
 
     fprintf(stderr, "#define FREQUENCIES {%f, %f}\n", best_f1, best_f1 + 40000.0f);
-  }
+    printf("export SPARSNAS_FREQ_MIN=%f\nexport SPARSNAS_FREQ_MAX=%f\n" , best_f1, best_f1 + 40000.0f);
+    return 0;
+}
 
-  return 0;
+
+int get_env_int(const char * env_var_name,int * buf) {
+
+    if (const char *env_p = std::getenv(env_var_name))
+        if (sscanf(env_p,"%d",buf))
+            return 1;
+    return 0;
+}
+
+
+int main(int argc, char **argv)
+{
+    int tmp;
+    FILE *f = stdin;
+    if (argc >= 2) {
+        f = fopen(argv[1], "rb");
+        if (!f) {
+            fprintf(stderr, "Failed load!\n");
+            return 1;
+        }
+    }
+
+
+    //Get SENSOR_ID from environment
+    if (get_env_int("SPARSNAS_SENSOR_ID",&tmp))
+        SENSOR_ID = tmp;
+    else {
+        fprintf(stderr, "SPARSNAS_SENSOR_ID not defined or incorrect. Aborting!\n");
+        return 1;
+    }
+
+    if (argc >= 3 && strcmp(argv[2], "--find-frequencies") == 0)
+      return run_calibration(f);
+
+
+    //Get the parameters from environment
+    if (get_env_int("SPARSNAS_PULSES_PER_KWH",&tmp))
+        PULSES_PER_KWH = tmp;
+
+    if (get_env_int("SPARSNAS_FREQ_MIN",&tmp))
+        frequencies[0] = tmp;
+    else {
+        fprintf(stderr, "SPARSNAS_FREQ_MIN not defined or incorrect. Aborting!\n");
+        return 1;
+    }
+
+    if (get_env_int("SPARSNAS_FREQ_MAX",&tmp))
+        frequencies[1] = tmp;
+    else {
+        fprintf(stderr, "SPARSNAS_FREQ_MAX not defined or incorrect. Aborting!\n");
+        return 1;
+    }
+
+    FILE *logfile;
+    if (const char *env_p = std::getenv("SPARSNAS_LOG"))
+        logfile=fopen(env_p,"a");
+    else
+        logfile = NULL;
+
+    memset(MQTT_HOSTNAME, '\0', sizeof(MQTT_HOSTNAME));
+    if (const char *env_p = std::getenv("MQTT_HOST"))
+      strncpy(MQTT_HOSTNAME, env_p, sizeof(MQTT_HOSTNAME)-1);
+    else
+      strncpy(MQTT_HOSTNAME, "localhost", sizeof(MQTT_HOSTNAME)-1);
+
+    if (get_env_int("MQTT_PORT",&tmp))
+        MQTT_PORT = tmp;
+
+    memset(MQTT_TOPIC, '\0', sizeof(MQTT_TOPIC));
+    if (const char *env_p = std::getenv("MQTT_TOPIC"))
+      strncpy(MQTT_TOPIC, env_p, sizeof(MQTT_TOPIC)-1);
+    else
+      sprintf(MQTT_TOPIC, "sparsnas/%d", SENSOR_ID);
+
+    sprintf(MQTT_CRC_TOPIC, "%s/crc", MQTT_TOPIC);
+
+    memset(MQTT_USERNAME, '\0', sizeof(MQTT_USERNAME));
+    if (const char *env_p = std::getenv("MQTT_USERNAME"))
+      strncpy(MQTT_USERNAME, env_p, sizeof(MQTT_USERNAME)-1);
+
+    memset(MQTT_PASSWORD, '\0', sizeof(MQTT_PASSWORD));
+    if (const char *env_p = std::getenv("MQTT_PASSWORD"))
+      strncpy(MQTT_PASSWORD, env_p, sizeof(MQTT_PASSWORD)-1);
+
+    // Initialize the Mosquitto library
+    mosquitto_lib_init();
+
+    // Create a new Mosquitto runtime instance with a random client ID,
+    mosq = mosquitto_new (NULL, true, NULL);
+    mosquitto_loop_start(mosq);
+
+    if (mosq) {
+      //Set username and password (will be ignored of MQTT_USERNAME=NULL)
+      mosquitto_username_pw_set (mosq, MQTT_USERNAME, MQTT_PASSWORD);
+      int ret = mosquitto_connect (mosq, MQTT_HOSTNAME, MQTT_PORT, 30);
+      if (ret) {
+        fprintf (stderr, "Can't connect to Mosquitto server\n");
+        mosq = NULL;
+      }
+    } else
+        fprintf (stderr, "Can't initialize Mosquitto library\n");
+
+    //Run the main program
+    run_for_frequencies(f, logfile, frequencies[0], frequencies[1]);
+
+    return 0;
 }
