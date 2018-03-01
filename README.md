@@ -32,7 +32,7 @@ It is highly recommended to use the [docker](https://docker.com) version describ
 The following instructions are for you that for some reason don't want to use docker, and assumes a debian or ubuntu based environment.
 
 ```sh
-sudo apt-get update && apt-get install -y git g++ libmosquitto-dev libmosquitto1 rtl-sdr zsh busybox
+sudo apt-get update && sudo apt-get install -y git g++ libmosquitto-dev libmosquitto1 rtl-sdr zsh busybox
 cd ~
 git clone https://github.com/fredrike/sparsnas_decoder
 cd sparsnas_decoder
