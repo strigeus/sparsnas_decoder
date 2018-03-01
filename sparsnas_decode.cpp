@@ -32,7 +32,7 @@ uint32_t MQTT_PORT = 1883;
 char MQTT_USERNAME[64];
 char MQTT_PASSWORD[64];
 char MQTT_TOPIC[64];
-
+char MQTT_CRC_TOPIC[64];
 
 FILE *outfile;
 int testing=0;
@@ -178,38 +178,43 @@ public:
         for (int i = 0; i < 18; i++)
           m += sprintf(m, "%.2X ", data_[i]);
         m += sprintf(m, "\"");
-      } else {
+      } else if (crc == packet_crc) {
         bad = false;
         int seq = (dec[9] << 8 | dec[10]);
-        int effect = (dec[11] << 8 | dec[12]);
+        unsigned int effect = (dec[11] << 8 | dec[12]);
         int pulse = (dec[13] << 24 | dec[14] << 16 | dec[15] << 8 | dec[16]);
         int battery = dec[17];
         float watt = effect * 24;
         int data4 = data_[4]^0x0f;
 //      Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
         if(data4 == 1){
-          watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
+          watt = (double)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
         }
-        m += sprintf(m, "{\"Sequence\": %5d,\"Watt\": %7.2f,\"kWh\": %d.%.3d,\"battery\": %d,\"FreqErr\": %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
+        m += sprintf(m, "{\"Sequence\": %5d,\"Watt\": %7.2f,\"kWh\": %d.%.3d,\"battery\": %d,\"FreqErr\": %.2f,\"Effect\": %d", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq, effect);
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
           error_sum_count += 1;
         }
+      } else {
+        m += sprintf(m, "{\"CRC\": \"ERR\"");
       }
 
-      m += sprintf(m, (crc == packet_crc) ? ",\"CRC\":\"ok\"" : ",\"CRC\": \"ERR\"");
-
       m += sprintf(m, ",\"Sensor\":%6d}\n", SENSOR_ID);
+      char* topic = (crc == packet_crc) ? MQTT_TOPIC : MQTT_CRC_TOPIC;
       if (!testing) {
         if (mosq && !bad) {
-          int ret = mosquitto_publish (mosq, NULL, MQTT_TOPIC, strlen(mesg) - 1, mesg, 0, false);
-          if (ret) {
-            fprintf(stderr, "Can't publish to Mosquitto server\n");
-            // Tear down the connecton and exit.
-            mosquitto_disconnect (mosq);
-            mosquitto_destroy (mosq);
-            mosquitto_lib_cleanup();
-            exit(-1);
+          int ret = mosquitto_publish (mosq, NULL, topic, strlen(mesg) - 1, mesg, 0, true);
+          if ( ret != MOSQ_ERR_SUCCESS) {
+            mosquitto_reconnect(mosq);
+            ret = mosquitto_publish (mosq, NULL, topic, strlen(mesg) - 1, mesg, 0, true);
+            if (ret != MOSQ_ERR_SUCCESS) {
+              fprintf(stderr, "Can't publish to Mosquitto server %d %s\n", ret, mosquitto_strerror(ret) );
+              // Tear down the connecton and exit.
+              mosquitto_disconnect (mosq);
+              mosquitto_destroy (mosq);
+              mosquitto_lib_cleanup();
+              exit(-1);
+            }
           }
         } else
           bad ? fprintf(stderr, "%s", mesg) : printf("%s", mesg);
@@ -440,6 +445,8 @@ int main(int argc, char **argv)
     else
       sprintf(MQTT_TOPIC, "sparsnas/%d", SENSOR_ID);
 
+    sprintf(MQTT_CRC_TOPIC, "%s/crc", MQTT_TOPIC);
+
     memset(MQTT_USERNAME, '\0', sizeof(MQTT_USERNAME));
     if (const char *env_p = std::getenv("MQTT_USERNAME"))
       strncpy(MQTT_USERNAME, env_p, sizeof(MQTT_USERNAME)-1);
@@ -453,6 +460,7 @@ int main(int argc, char **argv)
 
     // Create a new Mosquitto runtime instance with a random client ID,
     mosq = mosquitto_new (NULL, true, NULL);
+    mosquitto_loop_start(mosq);
 
     if (mosq) {
       //Set username and password (will be ignored of MQTT_USERNAME=NULL)
