@@ -150,14 +150,14 @@ automation:
     service: automation.trigger
   alias: trigger-sparsnas-if-unknown
   condition:
-    condition: state
+  - condition: state
     entity_id: sensor.sparsnas_template_kwh_sensor_month
     state: Unknown
+  id: '1519996400010'
   trigger:
-    - event: state
-      entity_id: sensor.sparsnas_energy_consumption_over_time
-      from: 'unknown'
-  id: '159293779102'
+  - entity_id: sensor.sparsnas_energy_consumption_over_time
+    from: unknown
+    platform: state
 
 
 group:
