@@ -1,6 +1,6 @@
 # docker build --build-arg SENSORS="12 10000" \
-#  --build-arg MQTT_HOST=192.168.x.x --build-arg MQTT_PORT \
-#  --build-arg=MQTT_USERNAME=username --build-arg=MQTT_PASSWORD
+#  --build-arg MQTT_HOST=192.168.x.x --build-arg MQTT_PORT=1883 \
+#  --build-arg=MQTT_USERNAME=username --build-arg=MQTT_PASSWORD=hemligt
 
 FROM alpine:edge as BUILD_ENV
 
