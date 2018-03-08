@@ -21,6 +21,8 @@ ENV MQTT_PORT=${MQTT_PORT:-1883}
 ENV MQTT_USERNAME=$MQTT_USERNAME
 ENV MQTT_PASSWORD=$MQTT_PASSWORD
 
+RUN : "${SENSORS:?Build argument 'SENSORS' needs to be set and non-empty.}"
+
 COPY --from=BUILD_ENV /build/sparsnas_decode /usr/bin/
 COPY sparsnas.sh /
 
@@ -29,6 +31,6 @@ RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/test
       mosquitto-libs++ \
       zsh
 
-RUN if [ "$SENSORS" ]; then sed -i "s/^SENSORS=.*/SENSORS=($SENSORS)/" /sparsnas.sh; fi
+RUN sed -i "s/^SENSORS=.*/SENSORS=(${SENSORS})/" /sparsnas.sh
 
 ENTRYPOINT ["/sparsnas.sh"]

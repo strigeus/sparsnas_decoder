@@ -4,7 +4,7 @@ set -o pipefail
 
 #Associatve array
 typeset -A SENSORS
-SENSORS=(722270 1000 602064 10000) #(id_1 pulses_1 id_2 pulses_2)
+SENSORS=(id_1 pulses_1 id_2 pulses_2)
 
 RTL_SDR=(/usr/bin/rtl_sdr -f 868000000 -s 1024000 -g 40 -)
 #RTL_SDR=(cat /sparsnas.raw)
@@ -42,7 +42,7 @@ function decode () {
 
 function frequencies () {
   for sensor in ${(k)SENSORS}; do
-     grep -e SPARSNAS_FREQ_MAX -e SPARSNAS_FREQ_MIN /tmp/${sensor}.freq >& /dev/null || return 1
+     grep -e SPARSNAS_FREQ_MAX -e SPARSNAS_FREQ_MIN /tmp/${sensor}.freq -q || return 1
   done
   return 0
 }
