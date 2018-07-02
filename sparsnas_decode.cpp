@@ -208,16 +208,7 @@ public:
         if (mosq && !bad) {
           int ret = mosquitto_publish (mosq, NULL, topic, strlen(mesg) - 1, mesg, 0, true);
           if ( ret != MOSQ_ERR_SUCCESS) {
-            mosquitto_reconnect(mosq);
-            ret = mosquitto_publish (mosq, NULL, topic, strlen(mesg) - 1, mesg, 0, true);
-            if (ret != MOSQ_ERR_SUCCESS) {
-              fprintf(stderr, "Can't publish to Mosquitto server %d %s\n", ret, mosquitto_strerror(ret) );
-              // Tear down the connecton and exit.
-              mosquitto_disconnect (mosq);
-              mosquitto_destroy (mosq);
-              mosquitto_lib_cleanup();
-              exit(-1);
-            }
+            fprintf(stderr, "Can't publish to Mosquitto server. %s\n", ret, mosquitto_strerror(ret) );
           }
         } else
           bad ? fprintf(stderr, "%s", mesg) : printf("%s", mesg);
@@ -468,9 +459,9 @@ int main(int argc, char **argv)
     if (mosq) {
       //Set username and password (will be ignored of MQTT_USERNAME=NULL)
       mosquitto_username_pw_set (mosq, MQTT_USERNAME, MQTT_PASSWORD);
-      int ret = mosquitto_connect (mosq, MQTT_HOSTNAME, MQTT_PORT, 30);
-      if (ret) {
-        fprintf (stderr, "Can't connect to Mosquitto server\n");
+      int ret = mosquitto_connect_async (mosq, MQTT_HOSTNAME, MQTT_PORT, 30);
+      if (ret != MOSQ_ERR_SUCCESS) {
+        fprintf (stderr, "Mosquitto connect issues, will write to stdout.\n");
         mosq = NULL;
       }
     } else
