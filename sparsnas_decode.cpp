@@ -26,7 +26,7 @@ float frequencies[2]; //={67500.0,105000.0};
 // MQTT connection
 struct mosquitto *mosq = NULL;
 
-// MQTT server connection parameters
+// MQTT connection parameters
 char MQTT_HOSTNAME[64];
 uint32_t MQTT_PORT = 1883;
 char MQTT_USERNAME[64];
@@ -208,7 +208,7 @@ public:
         if (mosq && !bad) {
           int ret = mosquitto_publish (mosq, NULL, topic, strlen(mesg) - 1, mesg, 0, true);
           if ( ret != MOSQ_ERR_SUCCESS) {
-            fprintf(stderr, "Can't publish to Mosquitto server. %s\n", ret, mosquitto_strerror(ret) );
+            fprintf(stderr, "Can't publish to Mosquitto server. %s\n",  mosquitto_strerror(ret));
           }
         } else
           bad ? fprintf(stderr, "%s", mesg) : printf("%s", mesg);
