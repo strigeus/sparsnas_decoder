@@ -26,7 +26,7 @@ RUN : "${SENSORS:?Build argument 'SENSORS' needs to be set and non-empty.}"
 COPY --from=BUILD_ENV /build/sparsnas_decode /usr/bin/
 COPY sparsnas.sh /
 
-RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ --allow-untrusted \
+RUN apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ --allow-untrusted \
       rtl-sdr \
       mosquitto-libs++ \
       zsh
