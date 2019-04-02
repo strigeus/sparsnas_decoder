@@ -192,7 +192,7 @@ public:
         } else if (data4 == 0 ) { // special mode for low power usage
           watt = effect * 0.24 / PULSES_PER_KWH;
         }
-        m += sprintf(m, "{\"Sequence\": %5d,\"Watt\": %7.2f,\"kWh\": %.3f,\"battery\": %d,\"FreqErr\": %.2f,\"Effect\": %d,\"Data4\": %d",
+        m += sprintf(m, "{\"Sequence\":%6d, \"Watt\":%8.2f, \"kWh\":%9.3f, \"battery\":%4d, \"FreqErr\":%5.2f, \"Effect\":%5d, \"Data4\":%2d",
             seq, watt, pulse/(float)PULSES_PER_KWH, battery, freq, effect, data4);
         if (testing && crc == packet_crc) {
           error_sum += fabs(freq);
@@ -202,7 +202,7 @@ public:
         m += sprintf(m, "{\"CRC\": \"ERR\"");
       }
 
-      m += sprintf(m, ",\"Sensor\":%6d}\n", SENSOR_ID);
+      m += sprintf(m, ", \"Sensor\": %6d}\n", SENSOR_ID);
       char* topic = (crc == packet_crc) ? MQTT_TOPIC : MQTT_CRC_TOPIC;
       if (!testing) {
         if (mosq && !bad) {
