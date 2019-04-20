@@ -8,6 +8,8 @@ If you want to implement the same thing as below into an ESP8266 please see the 
 If you want to get into the bits and bytes of the system please see:
 https://github.com/kodarn/Sparsnas
 
+Asif just made a HASSIO Addon based on this code, check out his repository here: https://github.com/asifma/hassio-addons
+
 This is a decoder for IKEA SPARSNÄS.
 ===================================
 
