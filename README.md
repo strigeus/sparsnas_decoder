@@ -17,7 +17,8 @@ The packet data is encrypted using your sender's ID. The sender ID is the last 6
 
 Prerequisites:
 -------------
-Tested on a Raspberry Pi 3 with Raspbian Stretch with a NooElec Micro 3 USB SDR dongle. You should be able to use any RTL-SDR compatible dongle.
+Tested on a Raspberry Pi 3 with Raspbian Stretch with a NooElec Nano 3 USB SDR dongle. You should be able to use any RTL-SDR compatible dongle. If you live in Sweden/EU the NooElec Micro 3 dongle can be bought from www.amazon.de (free shipping on orders over 25 EUR).
+Of get your self the "real deal", an original RTL-SDR v3 from https://www.lohelectronics.se/kommunikation/amatorradio/radio/rtl-sdr-r820t2-rtl2832u-1ppm-tcxo-sma-sdr . Dont forget to make your self an antenna, the IKEA Sparsnäs transmits on 868 MHz so a 1/2 wave lenght wire connected to the center pin in the antenna port should do the trick. Make the wire approximently 16 cm long.
 
 An IKEA Sparsnäs unit (duuh)
 
