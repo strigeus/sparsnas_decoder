@@ -2,14 +2,14 @@
 #  --build-arg MQTT_HOST=192.168.x.x --build-arg MQTT_PORT=1883 \
 #  --build-arg=MQTT_USERNAME=username --build-arg=MQTT_PASSWORD=hemligt
 
-FROM alpine:edge as BUILD_ENV
+FROM alpine:3.7 as BUILD_ENV
 
 COPY ./sparsnas_decode.cpp /build/
 
 RUN apk add --no-cache g++ mosquitto-dev && \
     g++ -o /build/sparsnas_decode -O2 -Wall /build/sparsnas_decode.cpp -lmosquitto
 
-FROM alpine:edge
+FROM alpine:3.7
 
 ARG SENSORS
 ARG MQTT_HOST
