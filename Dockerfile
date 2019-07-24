@@ -29,7 +29,6 @@ RUN apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/te
       zsh
 
 COPY --from=BUILD_ENV /build/sparsnas_decode /usr/bin/
-
 COPY sparsnas.sh /
 
 RUN sed -i "s/^SENSORS=.*/SENSORS=(${SENSORS})/" /sparsnas.sh
