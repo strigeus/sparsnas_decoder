@@ -55,7 +55,7 @@ if ( frequencies ); then
   eval $CMD
 else
   echo "Need to find frequencies"
-  busybox timeout -t 45 $RTL_SDR > /tmp/sparsnas.raw
+  busybox timeout 45 $RTL_SDR > /tmp/sparsnas.raw
   #ls -l /tmp/sparsnas.raw
   F=`findfreq`
   # echo $F
