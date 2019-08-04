@@ -87,7 +87,7 @@ lost at least 24 bytes
 
 How to configure the decoder:
 -------------
-Take a photo/make a note of your transmitter ID number underneeth the battery lid of the transmitter (not the display)
+Take a photo/make a note of your transmitter ID number underneeth the battery lid of the transmitter (not the display. Obmit the 400 and take the remaining eight numbers and make a note of them.
 
 Edit sparsnas.sh to setup your sender id. You are allowed to have unlimitied number of senders and the format is `transmitter_id pulses/kWh` followed by a space.
 
