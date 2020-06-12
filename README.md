@@ -3,7 +3,8 @@ https://github.com/strigeus/sparsnas_decoder
 
 This is a fork is adapted for output in JSON format to a MQTT broker.
 
-[![buy me and @fredrike a coffee](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/tubalainen)
+If you want to buy me and @fredrike a coffee, please feel free.
+[![buy me a coffee](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/tubalainen)
 
 If you want to implement the same thing as below into an ESP8266 please see the following project: https://github.com/bphermansson/EspSparsnasGateway
 
