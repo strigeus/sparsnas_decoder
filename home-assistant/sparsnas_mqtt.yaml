@@ -44,32 +44,27 @@ sensor:
     name: "Sparsnäs energy consumption over time"
     unit_of_measurement: "kWh"
     value_template: '{{ value_json.kWh | round(1) }}'
-    hidden: true
     icon: mdi:flash-circle
   - platform: mqtt
     state_topic: !secret sparsnas_sensor
     name: "Sparsnäs Battery remaining"
     unit_of_measurement: "%"
     value_template: '{{ value_json.battery | round(1) }}'
-    hidden: true
     icon: mdi:battery-outline
   - platform: mqtt
     state_topic: !secret sparsnas_sensor
     name: "Sparsnäs Frequency Error"
     unit_of_measurement: "%"
     value_template: '{{ value_json.FreqErr }}'
-    hidden: true
     icon: mdi:signal
   - platform: mqtt
     name: "Sparsnäs template kwh sensor day"
     state_topic: "template/kwh/day"
     icon: mdi:flash-circle
-    hidden: true
   - platform: mqtt
     name: "Sparsnäs template kwh sensor month"
     state_topic: "template/kwh/month"
     icon: mdi:flash-circle
-    hidden: true
   - platform: template
     sensors:
       kwh_current_month:
@@ -163,7 +158,6 @@ automation:
 group:
   sparsnas:
     name: Energy Consumption
-    view: no
     icon: mdi:flash-circle
     entities:
       - sensor.sparsnas_energy_consumption_momentary
