@@ -45,6 +45,8 @@ sensor:
     unit_of_measurement: "kWh"
     value_template: '{{ value_json.kWh | round(1) }}'
     icon: mdi:flash-circle
+    device_class: energy
+    state_class: total_increasing
   - platform: mqtt
     state_topic: !secret sparsnas_sensor
     name: "Sparsnäs Battery remaining"
