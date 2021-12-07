@@ -1,3 +1,8 @@
+**This repository has been retired. Please use alternative forks.**
+
+*******************************************************************
+
+
 A BIG thanks to the https://www.facebook.com/groups/SHgruppen on Facebook and a special superduper thanks to the core coder @strigeus!
 https://github.com/strigeus/sparsnas_decoder
 
